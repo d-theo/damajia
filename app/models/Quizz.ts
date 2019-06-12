@@ -1,5 +1,5 @@
-import {PlayerCollection} from "./PlayerCollection";
-import {QuestionCollection} from "./QuestionCollection";
+import { PlayerCollection } from "./PlayerCollection";
+import { QuestionCollection } from "./QuestionCollection";
 
 export class Quizz {
   id: string;
