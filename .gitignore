@@ -1,0 +1,15 @@
+#intellij
+**/.idea
+**/*.iml
+.vscode/
+
+coverage/
+*report.*
+
+# Node
+node_modules/
+build/
+upload/
+
+swagger.yaml
+swagger.json
