@@ -5,6 +5,6 @@ export class Quizz {
   id: string;
   startTime: Date;
   players: PlayerCollection;
-  Questions: QuestionCollection;
+  questions: QuestionCollection;
   settings: any;
 }

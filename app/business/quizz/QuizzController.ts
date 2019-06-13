@@ -2,6 +2,7 @@ import { Quizz } from "../../models/Quizz";
 const uuidv1 = require("uuid/v1");
 import { Inject, Singleton, AutoWired } from "typescript-ioc";
 import { QuizzRepository } from "../../repository/QuizzRepository";
+import { FetchQuizzService } from "../../services/FetchQuizzService";
 
 @Singleton
 @AutoWired
@@ -14,6 +15,7 @@ export class QuizzController {
       const quizzId = uuidv1();
       const quizz = new Quizz();
       quizz.id = quizzId;
+      quizz.questions = await new FetchQuizzService({}).fetch();
       await this.quizzRepository.add(quizz);
       return quizz.id;
     } catch (e) {

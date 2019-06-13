@@ -13,6 +13,23 @@ async function start() {
     const httpServer = new HttpServer(config);
     await httpServer.start();
 
+    const http = require('http').createServer(httpServer.getApp());
+    const io = require('socket.io')(http);
+    io.on('connection', function(socket){
+      console.log('a user connected');
+      socket.on('join', msg => {
+        socket.join('room1');
+        // get quizz, add player
+      });
+      socket.on('ready', msg => {
+        // get quizz, rdy player, if all ready, launch game
+      });
+      socket.on('submit', msg => {
+        // get quizz, tell answer
+      });
+      //io.to('some room').emit('some event', 'msg');
+    });
+
     //Routine de shutdown
     process.on("SIGINT", async () => {
       try {

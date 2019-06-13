@@ -26,7 +26,11 @@ export class HttpServer {
 
 		//Failback
 		// this.app.use(ErrorFailbackMiddleware.getMiddleware(config));
-	}
+  }
+  
+  getApp() {
+    return this.app;
+  }
 
 	start() {
 		return new Promise((resolve, reject) => {

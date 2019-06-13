@@ -1,3 +1,8 @@
+import { QuestionBuilder, Question } from "../models/Question";
+import { QuestionCollection } from "../models/QuestionCollection";
+
+const axios = require('axios');
+
 export class FetchQuizzService {
   amount: number;
   category: number;
@@ -31,13 +36,29 @@ export class FetchQuizzService {
   };
   constructor(params: any) {}
 
-  async fetch() {
-    const amount = 10;
+  async fetch(): Promise<QuestionCollection> {
+    /*const amount = 10;
     const category = 9;
     const difficulty = "medium";
     const type = "multiple";
-    //const url `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=${type}&difficulty=${difficulty}`;
+    const url `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=${type}&difficulty=${difficulty}`;*/
     const url = "https://opentdb.com/api.php?amount=10&type=multiple";
+    const mapper = mapObject((questionAPI: QuestionAPI) => {
+      const builder = new QuestionBuilder().withTitle(questionAPI.question);
+      for (let incorrect of questionAPI.incorrect_answers) {
+        builder.withBadAnswer(incorrect);
+      }
+      return builder
+        .withGoodAnswer(questionAPI.correct_answer)
+        .build();
+    });
+
+    const apiRes = await axios.get(url);
+    console.log(apiRes.data)
+    const questions: Question[] = apiRes.data.results.map(questionApi => mapper(questionApi));
+    const questionCollection = new QuestionCollection();
+    questionCollection.questions = questions;
+    return questionCollection;
   }
 }
 
@@ -53,4 +74,10 @@ interface QuestionAPI {
   question: string;
   correct_answer: string;
   incorrect_answers: string[];
+}
+
+export function mapObject<T,R>(mapper: (o: T) => R) {
+  return (obj: T) => {
+    return mapper(obj);
+  }
 }
