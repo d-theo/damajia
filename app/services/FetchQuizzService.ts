@@ -1,5 +1,6 @@
 import { QuestionBuilder, Question } from "../models/Question";
 import { QuestionCollection } from "../models/QuestionCollection";
+import * as _ from 'lodash';
 
 const axios = require('axios');
 
@@ -42,19 +43,18 @@ export class FetchQuizzService {
     const difficulty = "medium";
     const type = "multiple";
     const url `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=${type}&difficulty=${difficulty}`;*/
-    const url = "https://opentdb.com/api.php?amount=10&type=multiple";
+    const url = "https://opentdb.com/api.php?amount=10&type=multiple&encode=base64";
     const mapper = mapObject((questionAPI: QuestionAPI) => {
-      const builder = new QuestionBuilder().withTitle(questionAPI.question);
+      const builder = new QuestionBuilder().withTitle(atob(questionAPI.question));
       for (let incorrect of questionAPI.incorrect_answers) {
-        builder.withBadAnswer(incorrect);
+        builder.withBadAnswer(atob(incorrect));
       }
       return builder
-        .withGoodAnswer(questionAPI.correct_answer)
+        .withGoodAnswer(atob(questionAPI.correct_answer))
         .build();
     });
 
     const apiRes = await axios.get(url);
-    console.log(apiRes.data)
     const questions: Question[] = apiRes.data.results.map(questionApi => mapper(questionApi));
     const questionCollection = new QuestionCollection();
     questionCollection.questions = questions;
@@ -80,4 +80,8 @@ export function mapObject<T,R>(mapper: (o: T) => R) {
   return (obj: T) => {
     return mapper(obj);
   }
+}
+
+function atob(b64) {
+  return Buffer.from(b64, 'base64').toString();
 }

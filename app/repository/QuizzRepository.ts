@@ -14,4 +14,7 @@ export class QuizzRepository {
     console.log(this.quizzRepo[id]);
     return this.quizzRepo[id];
   }
+  async save(quizz: Quizz) {
+    
+  }
 }
