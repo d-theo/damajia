@@ -21,7 +21,7 @@ export class QuizzController {
       await this.quizzRepository.add(quizz);
       return quizz.id;
     } catch (e) {
-      throw new Error("cannot create quizz" + e);
+      throw new Error("cannot create quizz " + e);
     }
   }
 

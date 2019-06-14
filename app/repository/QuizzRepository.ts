@@ -8,10 +8,8 @@ export class QuizzRepository {
   constructor() {}
   async add(quizz: Quizz) {
     this.quizzRepo[quizz.id] = quizz;
-    console.log(this.quizzRepo);
   }
   async get(id: string) {
-    console.log(this.quizzRepo[id]);
     return this.quizzRepo[id];
   }
   async save(quizz: Quizz) {
