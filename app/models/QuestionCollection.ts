@@ -2,7 +2,7 @@ import { Question } from "./Question";
 
 export class QuestionCollection {
   questions: Question[] = [];
-  playerAnswers: any = {};
+  playerAnswers: {[questionId: string]: {[playerName: string]: string}} = {};
 
   get(i: number) {
     if (i >= 0 && i < this.questions.length) {
@@ -26,5 +26,15 @@ export class QuestionCollection {
 
   getRecapOf(questionId: string) {
     return this.playerAnswers[questionId];
+  }
+
+  getAnswerOf(questionId: string, playerName: string) {
+    if (!this.playerAnswers[questionId]) {
+      return null;
+    }
+    if (!this.playerAnswers[questionId][playerName]) {
+      return null;
+    }
+    return this.playerAnswers[questionId][playerName];
   }
 }

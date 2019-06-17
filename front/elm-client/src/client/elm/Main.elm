@@ -5,7 +5,7 @@ import Html exposing (Html, button, div, input, li, text, ul)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode exposing (Decoder, field, string, map3, list, map2, int, map, oneOf, decodeValue)
+import Json.Decode exposing (Decoder, field, string, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 import Json.Encode exposing (Value)
 
 
@@ -53,7 +53,7 @@ init _ =
       , currentChoice = -1
       , finalScore = Nothing
       , isReady = False
-      , errorMessage = "-"
+      , errorMessage = ""
       }
     , Cmd.none
     )
@@ -112,7 +112,7 @@ gameQuestion =
   map3 GameQuestion
     (field "id" string)
     (field "title" string)
-    (field "possibleResponse" (list possibleResponses))
+    (field "possibleResponses" (list possibleResponses))
 
 gameScore: Decoder GameScore
 gameScore = 
@@ -130,9 +130,11 @@ parseGameEvent: Value -> GameMessage
 parseGameEvent value = 
   let 
     parsed = decodeValue gameMessage value
-      |> Result.withDefault errorParse
+    data = case parsed of
+      Ok evt -> evt
+      Err err -> ErrorParse (errorToString err)
   in
-    parsed
+    data
 
 -- UPDATE game_finished next_question
 
@@ -195,7 +197,8 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ ul [ id "messages" ] (printQuestion model.currentQuestion)
+        [ printQuestionTitle model.currentQuestion
+        , ul [ id "messages" ] (printQuestionChoices model.currentQuestion)
         , text model.errorMessage
         , div [ id "chatform" ]
             [ input [ value model.playerName, onInput ChangePlayerName ] []
@@ -204,14 +207,14 @@ view model =
             ]
         ]
 
-printQuestion : Maybe GameQuestion -> List (Html Msg)
-printQuestion question =
+printQuestionChoices : Maybe GameQuestion -> List (Html Msg)
+printQuestionChoices question =
   case question of 
     Nothing -> []
     Just q -> (List.map (\choice -> li [onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
 
-unwrapQuestion: Maybe GameQuestion -> GameQuestion
-unwrapQuestion question =
-  case question of 
-    Nothing -> {title = "", id = "", possibleResponses = []}
-    Just q -> q
+printQuestionTitle: Maybe GameQuestion -> Html Msg
+printQuestionTitle question =
+  case question of
+    Nothing -> div [][]
+    Just q -> text q.title

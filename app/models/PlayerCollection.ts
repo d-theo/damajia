@@ -32,6 +32,14 @@ export class PlayerCollection {
     return true;
   }
 
+  get(playerName: string) {
+    if (this.players[playerName]) {
+      return this.players[playerName];
+    } else {
+      return null;
+    }
+  }
+
   getScoring (): Score[] {
     const score: Score[] = [];
     for (const pid in this.players) {

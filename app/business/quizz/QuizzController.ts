@@ -47,6 +47,10 @@ export class QuizzController {
   async setPlayerReady(gameId: string, playerName: string, isReady: boolean) {
     try { 
       const quizz: Quizz = await this.quizzRepository.get(gameId);
+      if (quizz.isStarted) {
+        console.log('game is already started');
+        return;
+      }
       quizz.players.setPlayerReady(playerName, isReady);
       await this.quizzRepository.save(quizz);
       if (quizz.isStarting()) {
@@ -64,6 +68,13 @@ export class QuizzController {
   async submitAnswer(gameId: string, playerName: string, questionId: string, answerId: number) {
     try { 
       const quizz: Quizz = await this.quizzRepository.get(gameId);
+      if (!quizz) {
+        throw new Error(gameId + ' does not exists'); 
+      }
+      if (! quizz.canPlayerAnswerTo(playerName, questionId)) {
+       throw new Error(playerName + ' is not allowed to answer');
+      }
+      
       quizz.submit(playerName, questionId, answerId);
       await this.quizzRepository.save(quizz);
     } catch (e) {

@@ -10,7 +10,8 @@ export class Quizz {
   currentQuestion: Question | null;
   settings: any;
   cptQuestion = 0;
-
+  isStarted = false;
+  isFinished = false;
   constructor() {
     this.players = new PlayerCollection();
   }
@@ -46,5 +47,13 @@ export class Quizz {
 
   isStarting() {
     return this.players.areAllReady();
+  }
+  canPlayerAnswerTo(playerName: string, questionId: string) {
+    if (this.players.get(playerName) === null) {
+      return false;
+    }
+    if (this.questions.getAnswerOf(questionId, playerName) === null) {
+      return true;
+    }
   }
 }

@@ -8,6 +8,7 @@ export class Game {
   sub;
   constructor(private readonly quizz: Quizz) {
     quizz.startTime = new Date();
+    quizz.isStarted = true;
   }
 
   start() {
@@ -20,11 +21,9 @@ export class Game {
         clearInterval(this.sub);
       } else {
         this.dispatcher.dispatch(this.quizz, 'next_question', {
-          question: {
-            id: this.quizz.currentQuestion.id,
-            title: this.quizz.currentQuestion.title,
-            possibleResponses: this.quizz.currentQuestion.possibleResponses
-          }
+          id: this.quizz.currentQuestion.id,
+          title: this.quizz.currentQuestion.title,
+          possibleResponses: this.quizz.currentQuestion.possibleResponses
         });
       }
     }, 3000);
