@@ -1,7 +1,7 @@
 import { Player } from "./Player";
 
 export class PlayerCollection {
-  players: any = {};
+  players: { [name: string]: Player; } = {} 
   
   addPlayer(playerName: string) {
     if (this.players[playerName]) {
@@ -31,4 +31,20 @@ export class PlayerCollection {
     }
     return true;
   }
+
+  getScoring (): Score[] {
+    const score: Score[] = [];
+    for (const pid in this.players) {
+      score.push({
+        playerName: this.players[pid].name,
+        score: this.players[pid].score
+      });
+    }
+    return score;
+  }
+}
+
+export interface Score {
+  playerName: string;
+  score: number;
 }
