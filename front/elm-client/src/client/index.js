@@ -1,4 +1,5 @@
 import './index.html';
+import './styles.css';
 
 import { Elm } from './elm/Main.elm';
 
