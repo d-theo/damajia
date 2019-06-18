@@ -24,7 +24,8 @@ export class QuizzRouter {
   @POST
   async create(): Promise<string> {
     try {
-      return await this.quizzController.createQuizz();
+      const quizz: Quizz = await this.quizzController.createQuizz();
+      return quizz.id;
     } catch (e) {
       throw new InternalServerError(e);
     }

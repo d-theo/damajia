@@ -37,4 +37,8 @@ export class QuestionCollection {
     }
     return this.playerAnswers[questionId][playerName];
   }
+
+  numberOfAnswerForQuestion(questionId: string) {
+    return Object.keys(this.playerAnswers[questionId]).length;
+  }
 }

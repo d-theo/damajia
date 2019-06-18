@@ -12,6 +12,7 @@ export class Quizz {
   cptQuestion = 0;
   isStarted = false;
   isFinished = false;
+  timeout = 3;
   constructor() {
     this.players = new PlayerCollection();
   }
@@ -31,7 +32,7 @@ export class Quizz {
     }
 
     this.questions.addPlayerAnswer(playerName, questionId, answerId);
-
+    console.log('submiteddddd')
     if (this.currentQuestion.goodResponse.id === answerId) {
       this.players.updateScore(playerName, 1);
     }
@@ -44,10 +45,6 @@ export class Quizz {
       question: this.currentQuestion
     }
   }
-
-  isStarting() {
-    return this.players.areAllReady();
-  }
   canPlayerAnswerTo(playerName: string, questionId: string) {
     if (this.players.get(playerName) === null) {
       return false;
@@ -55,5 +52,11 @@ export class Quizz {
     if (this.questions.getAnswerOf(questionId, playerName) === null) {
       return true;
     }
+  }
+  everybodyAnswered(questionId: string) {
+    const nbResponses = this.questions.numberOfAnswerForQuestion(questionId);
+    const nbPlayers = this.players.count();
+    console.log(nbPlayers, nbResponses);
+    return nbPlayers === nbResponses;
   }
 }

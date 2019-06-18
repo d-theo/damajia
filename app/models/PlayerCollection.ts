@@ -1,11 +1,11 @@
 import { Player } from "./Player";
 
 export class PlayerCollection {
-  players: { [name: string]: Player; } = {} 
+  private players: { [name: string]: Player; } = {} 
   
   addPlayer(playerName: string) {
     if (this.players[playerName]) {
-      return;
+      throw new Error('player name already exists');
     } else {
       this.players[playerName] = new Player(playerName);
     }
@@ -49,6 +49,10 @@ export class PlayerCollection {
       });
     }
     return score;
+  }
+
+  count() {
+    return Object.keys(this.players).length;
   }
 }
 

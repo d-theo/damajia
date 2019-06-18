@@ -1,22 +1,19 @@
 import { Inject } from "typescript-ioc";
-import { QuizzController } from "../business/quizz/QuizzController";
+import { GameController } from "../business/quizz/GameController";
 
 export class GameRouter {
-  @Inject private readonly quizzController: QuizzController;
+  @Inject private readonly gameController: GameController;
 
   join(msg: any) {
     const {playerName, gameId} = msg;
-    console.log(`${playerName} joined the game ${gameId}`);
-    this.quizzController.addPlayerToGame(gameId, playerName)
+    this.gameController.addPlayerToGame(gameId, playerName)
   }
   ready(msg: any) {
     const {playerName, gameId, ready} = msg;
-    console.log(`${playerName} - ${gameId} is ready : ${ready}`);
-    this.quizzController.setPlayerReady(gameId, playerName, ready);
+    this.gameController.setPlayerReady(gameId, playerName, ready);
   }
   submit(msg: any) {
     const {playerName, gameId, questionId, answerId} = msg;
-    console.log(`${playerName} - ${gameId} is answering question ${questionId} with ${answerId}`);
-    this.quizzController.submitAnswer(gameId, playerName, questionId, answerId);
+    this.gameController.submitAnswer(gameId, playerName, questionId, answerId);
   }
 }
