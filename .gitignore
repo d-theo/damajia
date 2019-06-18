@@ -12,5 +12,8 @@ node_modules/
 build/
 upload/
 
+#ELM
+elm-client/elm-stuff
+
 swagger.yaml
 swagger.json
