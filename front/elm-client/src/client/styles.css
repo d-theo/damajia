@@ -1,3 +1,9 @@
 body {
   background-color: antiquewhite
 }
+.hoverable:hover {
+  cursor: pointer;
+}
+.hoverable:active {
+  background-color: #b8daff !important;
+}

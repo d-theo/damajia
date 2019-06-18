@@ -32,7 +32,6 @@ export class Quizz {
     }
 
     this.questions.addPlayerAnswer(playerName, questionId, answerId);
-    console.log('submiteddddd')
     if (this.currentQuestion.goodResponse.id === answerId) {
       this.players.updateScore(playerName, 1);
     }
@@ -59,4 +58,10 @@ export class Quizz {
     console.log(nbPlayers, nbResponses);
     return nbPlayers === nbResponses;
   }
+}
+
+
+export interface QuizzSettings {
+  name: string;
+  timeout: number;
 }

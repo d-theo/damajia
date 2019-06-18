@@ -53,11 +53,11 @@ export class Game {
           return;
         }
       }
-      this.bus.emit('round_report', {});
+      this.bus.emit('round_report', {questionId: data.id});
       this.bus.schedule('next_question', {}, 1);
     });
     this.bus.on('all_answered', (data) => {
-      this.bus.emit('round_report', {});
+      this.bus.emit('round_report', {questionId: quizz.currentQuestion!.id});
       this.bus.schedule('next_question', {}, 1);
     });
     this.bus.on('next_question', (data) => {
@@ -65,6 +65,7 @@ export class Game {
       if (this.quizz.currentQuestion == null) {
         this.bus.emit('game_end', {});
       } else {
+        quizz.questions.createEmptyAnswer(quizz.currentQuestion!.id);
         this.dispatcher.dispatch(quizz,'next_question', {
           id: quizz.currentQuestion!.id,
           title: quizz.currentQuestion!.title,
@@ -79,7 +80,8 @@ export class Game {
       this.bus.emit('game_report', {});
     });
     this.bus.on('round_report', (data) => {
-      this.dispatcher.dispatch(this.quizz, 'round_report', {});
+      const report = this.quizz.questions.getRecapOf(data.questionId);
+      this.dispatcher.dispatch(this.quizz, 'round_report', report);
     });
     this.bus.on('game_report', (data) => {
       this.dispatcher.dispatch(this.quizz, 'game_report', {});

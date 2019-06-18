@@ -38,3 +38,7 @@ socket.on('next_question', function(message) {
   console.log(message);
   app.ports.receiveMessage.send(message);
 });
+socket.on('round_report', function(message) {
+  console.log(message);
+  app.ports.receiveMessage.send(message);
+});

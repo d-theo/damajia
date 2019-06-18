@@ -1,4 +1,4 @@
-import { Quizz } from "../../models/Quizz";
+import { Quizz, QuizzSettings } from "../../models/Quizz";
 const uuidv1 = require("uuid/v1");
 import { Inject, Singleton, AutoWired } from "typescript-ioc";
 import { QuizzRepository } from "../../repository/QuizzRepository";
@@ -12,11 +12,11 @@ export class QuizzController {
   
   constructor() {}
 
-  async createQuizz() {
+  async createQuizz(settings: QuizzSettings) {
     try {
-      const quizzId = uuidv1();
       const quizz = new Quizz();
-      quizz.id = "test";
+      quizz.id = settings.name;
+      quizz.timeout = settings.timeout;
       quizz.questions = await new FetchQuizzService({}).fetch();
       await this.quizzRepository.add(quizz);
       return quizz;

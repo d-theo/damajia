@@ -1,4 +1,4 @@
-import { Quizz } from "../../models/Quizz";
+import { Quizz, QuizzSettings } from "../../models/Quizz";
 import { Inject, Singleton, AutoWired } from "typescript-ioc";
 import { Game } from "./Game";
 import { QuizzController } from "./QuizzController";
@@ -12,19 +12,21 @@ export class GameController {
   
   constructor() {}
 
-  async createGame() {
-    const quizz: Quizz = await this.quizzController.createQuizz();
+  async createGame(settings: QuizzSettings) {
+    const quizz: Quizz = await this.quizzController.createQuizz(settings);
     const game = new Game(quizz);
     await this.gameRepository.add(game);
     return game;
   }
 
   async addPlayerToGame(gameId: string, playerName: string) {
-    let game: Game = await this.gameRepository.get(gameId);
-    if (!game) {
-      game = await this.createGame();
+    try {
+      let game: Game = await this.gameRepository.get(gameId);
+      console.log(`adding ${playerName} to game id ${gameId}`)
+      game.getBus().emit('player_joined', {playerName});
+    } catch(e) {
+      console.log(e);
     }
-    game.getBus().emit('player_joined', {playerName});
   }
 
   async setPlayerReady(gameId: string, playerName: string, isReady: boolean) {

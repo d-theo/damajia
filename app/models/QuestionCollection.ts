@@ -2,7 +2,7 @@ import { Question } from "./Question";
 
 export class QuestionCollection {
   questions: Question[] = [];
-  playerAnswers: {[questionId: string]: {[playerName: string]: string}} = {};
+  private playerAnswers: {[questionId: string]: {[playerName: string]: number}} = {};
 
   get(i: number) {
     if (i >= 0 && i < this.questions.length) {
@@ -12,7 +12,15 @@ export class QuestionCollection {
     }
   }
 
-  addPlayerAnswer(playerName, questionId, answerId) {
+  getById(id: string): Question | undefined {
+    return this.questions.find(q => q.id === id);
+  }
+
+  createEmptyAnswer(questionId: string) {
+    this.playerAnswers[questionId] = {};
+  }
+
+  addPlayerAnswer(playerName: string, questionId: string, answerId: number) {
     if (!this.playerAnswers[questionId]) {
       this.playerAnswers[questionId] = {};
     }
@@ -24,8 +32,20 @@ export class QuestionCollection {
     this.playerAnswers[questionId][playerName] = answerId;
   }
 
-  getRecapOf(questionId: string) {
-    return this.playerAnswers[questionId];
+  getRecapOf(questionId: string): QuestionRecap[] {
+    const answers = this.playerAnswers[questionId];
+    const question = this.getById(questionId);
+    if (!question) {
+      throw new Error('no question with id ' + questionId)
+    }
+    return Object.keys(answers).map(playerName => {
+      return {
+        playerName,
+        answer: this.playerAnswers[questionId][playerName],
+        goodAnswer: question.goodResponse.id,
+        questionId: questionId
+      }
+    });
   }
 
   getAnswerOf(questionId: string, playerName: string) {
@@ -41,4 +61,11 @@ export class QuestionCollection {
   numberOfAnswerForQuestion(questionId: string) {
     return Object.keys(this.playerAnswers[questionId]).length;
   }
+}
+
+export interface QuestionRecap {
+  playerName: string;
+  answer: number;
+  goodAnswer: number;
+  questionId: string
 }
