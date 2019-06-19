@@ -1,7 +1,6 @@
 import './index.html';
 import './styles.css';
 import './bootstrap.min.css';
-
 import { Elm } from './elm/Main.elm';
 
 const app = Elm.Main.init({
