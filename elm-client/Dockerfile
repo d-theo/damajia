@@ -1,8 +1,9 @@
-FROM node:10-alpine
+FROM wunsh/alpine-elm:latest
+RUN apk add --update nodejs nodejs-npm
 COPY ./ /app
 WORKDIR /app
+RUN elm make src/client/elm/Main.elm
 RUN npm install
-RUN npm run elminstall
 RUN npm run build
 
 FROM nginx

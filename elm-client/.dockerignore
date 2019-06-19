@@ -1,1 +1,5 @@
 elm-stuff
+node_modules
+.git
+.gitignore
+package-lock.json

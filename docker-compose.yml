@@ -1,7 +1,7 @@
 version: '3'
 services:
   damajia-front:
-    image: "damajia-front"
+    image: "damajia-client"
     ports:
      - "8080:80"
   damajia-server:
