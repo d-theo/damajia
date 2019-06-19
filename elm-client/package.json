@@ -4,6 +4,7 @@
   "description": "Example of using Elm 0.19 with socket.io",
   "main": "src/server/index.js",
   "scripts": {
+    "elminstall": "elm install",
     "build": "webpack --mode production",
     "start": "npm run build && node src/server/index.js",
     "client": "webpack-dev-server --mode development --devtool inline-source-map --hot",

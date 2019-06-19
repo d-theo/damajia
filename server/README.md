@@ -1,6 +1,10 @@
 # damajia
 
+This will set up a http serveur and a websocket server on port `3000` and `3001`
+
 ## Install local
-npm i
-npm build
-npm run
+```
+$ npm install
+$ npm build
+$ npm run
+```
