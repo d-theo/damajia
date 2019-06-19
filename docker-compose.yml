@@ -1,11 +1,11 @@
 version: '3'
 services:
   damajia-front:
-    image: "damajia-client"
+    build: "elm-client/"
     ports:
      - "8080:80"
   damajia-server:
-    image: "damajia-server"
+    build: "server/"
     ports:
      - "3000:3000"
      - "3001:3001"
