@@ -9,11 +9,12 @@ coverage/
 
 # Node
 node_modules/
+dist/
 build/
 upload/
 
 #ELM
-elm-client/elm-stuff
+elm-stuff
 
 swagger.yaml
 swagger.json

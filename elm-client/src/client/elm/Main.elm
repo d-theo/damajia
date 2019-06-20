@@ -54,6 +54,7 @@ type alias Model =
     , timeout: Int
     , numberOfQuestions: Int
     , currentRecap: PlayerRoundRecap
+    , appConfig: AppConfig
     }
 
 type alias GameSettings = 
@@ -61,8 +62,12 @@ type alias GameSettings =
   , timeout: Int
   }
 
-init : () -> ( Model, Cmd Msg )
-init _ =
+type alias AppConfig =
+  { api_url : String
+  }
+
+init : AppConfig -> ( Model, Cmd Msg )
+init config =
     ( { messages = []
       , view = LobbyView
       , gameId = "test"
@@ -74,6 +79,7 @@ init _ =
       , errorMessage = ""
       , timeout = 30
       , numberOfQuestions = -1
+      , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
       }
     , Cmd.batch 
@@ -224,7 +230,7 @@ update msg model =
         Err m ->
           (model, Cmd.none)
     CreateGame ->
-      (model, (createGame {name= model.gameId, timeout= model.timeout}))
+      (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= model.timeout}))
     JoinGame ->
         ( model 
         , if model.playerName == "" then
@@ -346,10 +352,10 @@ lobbyView model =
         ]
     ]
 
-createGame : GameSettings -> Cmd Msg
-createGame settings =
+createGame : String -> GameSettings -> Cmd Msg
+createGame url settings =
   Http.post
-    { url = "http://localhost:3001/quizz/"
+    { url = url ++ "/quizz/"
     , body = Http.jsonBody (createGameSettings settings)
     , expect = Http.expectString GameCreated
     }
