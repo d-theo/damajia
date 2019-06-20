@@ -3,19 +3,21 @@ import './styles.css';
 import './bootstrap.min.css';
 import { Elm } from './elm/Main.elm';
 
-let wsUrl;
+let serverUrl;
+let wsPort = 3000;
+let apiPort = 3001;
 if (process.env.NODE_ENV === 'production') {
-  wsUrl = 'http://34.254.183.97:3000';
+  serverUrl = 'http://34.254.183.97';
 } else {
-  wsUrl = 'http://127.0.0.1:3000';
+  serverUrl = 'http://127.0.0.1';
 }
 const app = Elm.Main.init({
   node: document.getElementById('elm'),
   flags: {
-    api_url: wsUrl
+    api_url: serverUrl+':'+apiPort
   }
 });
-const socket = io(wsUrl);
+const socket = io(serverUrl+':'+wsPort);
 app.ports.sendMessage.subscribe(function(message) {
   const msg = message[1].split(',');
   switch (message[0]) {
