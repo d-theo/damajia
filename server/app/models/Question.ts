@@ -36,7 +36,7 @@ export class QuestionBuilder {
     const question = new Question();
     question.id = uuidv1();
     question.title = this.title;
-
+    this.answers = this.shuffle(this.answers);
     const ids = this.shuffle([...Array(this.answers.length)].map((_, i) => i));
     this.answers.forEach(q => {
       if (this.goodResponse.id === q.id) {
