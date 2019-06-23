@@ -28,7 +28,6 @@ export class QuestionBuilder {
     const anAnswer = new Answer();
     anAnswer.text = answer;
     anAnswer.id = this.id++;
-    this.answers.push(anAnswer);
     this.goodResponse = anAnswer;
     return this;
   }
@@ -36,17 +35,19 @@ export class QuestionBuilder {
     const question = new Question();
     question.id = uuidv1();
     question.title = this.title;
+    this.answers.push(this.goodResponse);
     this.answers = this.shuffle(this.answers);
-    const ids = this.shuffle([...Array(this.answers.length)].map((_, i) => i));
+
+    let ids: number[] = [];
+    for (let i = 0; i < this.answers.length; i++) {
+      ids.push(i);
+    }
+    ids = this.shuffle(ids);
+    console.log(ids);
     this.answers.forEach(q => {
-      if (this.goodResponse.id === q.id) {
-        const newId = ids.pop();
-        this.goodResponse.id = newId;
-        q.id = newId;
-      } else {
-        q.id = ids.pop();
-      }
+        q.id = ids.pop() || 0;
     });
+    
     question.possibleResponses = this.answers;
     question.goodResponse = this.goodResponse;
     return question;
