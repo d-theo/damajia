@@ -1,4 +1,4 @@
-port module Main exposing (Model, Msg(..), init, main, receiveMessage, sendMessage, subscriptions, update, view)
+port module Main exposing ( main )
 
 import Browser
 import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b)
@@ -11,7 +11,13 @@ import Random.String
 import Random.Char
 import Random
 import List.Extra
+import Page exposing (Page(..))
 
+import Update exposing (update)
+import Model exposing (Model, init)
+import View exposing (view)
+import Msg exposing (Msg(..))
+import Port exposing (subscriptions)
 
 -- MAIN
 
@@ -24,7 +30,7 @@ main =
       , view = view
       }
 
-
+{-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     receiveMessage GameEvent
@@ -34,12 +40,6 @@ port sendMessage : (String,String) -> Cmd msg
 
 
 port receiveMessage : (Value -> msg) -> Sub msg
-
--- MODEL
-type View 
-  = LobbyView
-  | PlayerLobbyView
-  | GameView
 
 type alias Model =
     { messages : List String
@@ -55,6 +55,7 @@ type alias Model =
     , numberOfQuestions: Int
     , currentRecap: PlayerRoundRecap
     , appConfig: AppConfig
+    , page: Page
     }
 
 type alias GameSettings = 
@@ -81,6 +82,7 @@ init config =
       , numberOfQuestions = -1
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
+      , page = SettingsPage {gameId = ""}
       }
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
@@ -413,3 +415,5 @@ printQuestionTitle question =
     Just q -> text q.title
 
 fiveLetterEnglishWord = Random.String.string 5 Random.Char.english
+
+-}
