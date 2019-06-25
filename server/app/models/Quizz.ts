@@ -1,4 +1,4 @@
-import { PlayerCollection } from "./PlayerCollection";
+import { PlayerCollection, Score } from "./PlayerCollection";
 import { QuestionCollection } from "./QuestionCollection";
 import { Question } from "./Question";
 
@@ -44,6 +44,11 @@ export class Quizz {
       question: this.currentQuestion
     }
   }
+
+  getFinalScore(): Score[] {
+    return this.players.getScoring();
+  }
+
   canPlayerAnswerTo(playerName: string, questionId: string) {
     if (this.players.get(playerName) === null) {
       return false;

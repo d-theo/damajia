@@ -45,10 +45,22 @@ app.ports.sendMessage.subscribe(function(message) {
   }
 });
 socket.on('next_question', function(message) {
-  console.log(message);
+  console.log('next_question');
   app.ports.receiveMessage.send(message);
 });
 socket.on('round_report', function(message) {
-  console.log(message);
+  console.log('round_report');
+  app.ports.receiveMessage.send(message);
+});
+socket.on('game_report', function(message) {
+  console.log('game_report', message);
+  app.ports.receiveMessage.send(message);
+});
+socket.on('player_ready', function(message) {
+  console.log('player_ready', message);
+  app.ports.receiveMessage.send(message);
+});
+socket.on('player_joined', function(message) {
+  console.log('player_joined', message);
   app.ports.receiveMessage.send(message);
 });

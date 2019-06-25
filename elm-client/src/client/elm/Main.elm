@@ -1,18 +1,17 @@
 port module Main exposing (Model, Msg(..), init, main, receiveMessage, sendMessage, subscriptions, update, view)
 
 import Browser
-import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b)
+import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, h5)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 import Json.Encode exposing (Value, object)
-import Random.String
-import Random.Char
 import Random
 import List.Extra
 
 import Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
+import RandomUtils exposing (fiveLetterEnglishWord)
 
 -- MAIN
 main =
@@ -35,6 +34,7 @@ type View
   = LobbyView
   | PlayerLobbyView
   | GameView
+  | GameFinishedView
 
 type alias GameSettings = 
   { name: String
@@ -52,13 +52,15 @@ type alias Model =
     , playerName: String
     , currentQuestion : Maybe GameQuestion
     , currentChoice: Int
-    , finalScore: Maybe GameScore
+    , finalScore: GameScore
     , isReady: Bool
+    , isJoined: Bool
     , errorMessage: String
     , timeout: Int
     , numberOfQuestions: Int
     , currentRecap: PlayerRoundRecap
     , appConfig: AppConfig
+    , lobbyLogs: List String
     }
 
 type Msg
@@ -85,20 +87,23 @@ init config =
       , playerName = "theo"
       , currentQuestion = Nothing
       , currentChoice = -1
-      , finalScore = Nothing
+      , finalScore = {score = []}
       , isReady = False
+      , isJoined = False
       , errorMessage = ""
       , timeout = 30
       , numberOfQuestions = -1
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
+      , lobbyLogs = []
       }
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
       , Random.generate RandomPlayerName fiveLetterEnglishWord
       ]
     )
--- UPDATE game_finished next_question
+
+-- UPDATE
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -117,9 +122,11 @@ update msg model =
             RoundRecap recap ->
               ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
             GameFinished score ->
-              ({model | finalScore = (Just score)}, Cmd.none)
+              ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
             ErrorParse err ->
               ({model | errorMessage = err}, Cmd.none)
+            LobbyLog log ->
+              ({model | lobbyLogs = (model.lobbyLogs ++ [log.info])}, Cmd.none)
     ChangePlayerName playerName ->
         ( { model | playerName = playerName }, Cmd.none )
     ChangeGameId gameId -> ( { model | gameId = gameId }, Cmd.none )
@@ -136,7 +143,7 @@ update msg model =
     CreateGame ->
       (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= model.timeout}))
     JoinGame ->
-        ( model 
+        ( {model | isJoined = True}
         , if model.playerName == "" then
             Cmd.none
           else
@@ -172,18 +179,21 @@ update msg model =
         )
       ))
 
-joinGame: Model -> Cmd Msg
-joinGame model = 
-  if model.playerName == "" then
-    Cmd.none
-  else
-    sendMessage (
-      "join",
-      (String.join ","
-      [ model.playerName
-      , model.gameId
-      ]
-      ))
+
+createGame : String -> GameSettings -> Cmd Msg
+createGame url settings =
+  Http.post
+    { url = url ++ "/quizz/"
+    , body = Http.jsonBody (createGameSettings settings)
+    , expect = Http.expectString GameCreated
+    }
+
+createGameSettings: GameSettings -> Value
+createGameSettings settings = 
+  object
+    [ ("name", Json.Encode.string settings.name)
+    , ("timeout", Json.Encode.int settings.timeout)
+    ]
 
 myRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> PlayerRoundRecap
 myRecap myName question currentRoundRecap = 
@@ -203,6 +213,7 @@ view model =
     LobbyView -> lobbyView model
     PlayerLobbyView -> playerLobbyView model
     GameView -> gameView model
+    GameFinishedView -> gameFinishedView model
 
 lobbyView: Model -> Html Msg
 lobbyView model = 
@@ -272,10 +283,21 @@ playerLobbyView model =
         [ text "your name" ]
     , input [ onInput ChangePlayerName, attribute "autocomplete" "off", class "form-control", name "newgameplayer", type_ "text", placeholder "name", value model.playerName]
         []
-    , button [ onClick JoinGame, class "btn btn-secondary btn-block" ]
+    , button [ onClick JoinGame, class ("btn btn-block " ++ if model.isJoined then "btn-secondary" else "btn-primary"), disabled model.isJoined]
       [ text "join game" ]
-    , button [ onClick GameReady, class "btn btn-secondary btn-block" ]
-      [ text "ready" ]
+    , button [ onClick GameReady, class ("btn btn-block "++if model.isReady then "btn-danger" else if model.isJoined then "btn-success" else "btn-secondary"), disabled (not model.isJoined) ]
+      [ text (if model.isReady then "Not Ready" else "Ready") ]
+    , ul [ class "d-flex flex-column" ]
+        (List.map (\log -> li [] [ h5 [] [text log ]]) model.lobbyLogs)
+    ]
+
+gameFinishedView: Model -> Html Msg
+gameFinishedView model = 
+  div []
+    [ h4 []
+        [ text "Game Finished !" ]
+    , ul [ class "d-flex flex-column" ]
+        (List.map (\playerScore -> li [class "alert alert-primary"] [ h5 [] [text (playerScore.playerName ++ " got " ++ (String.fromInt playerScore.score ++ " points")) ]]) model.finalScore.score)
     ]
 
 printQuestionChoices : Model -> Maybe GameQuestion -> List (Html Msg)
@@ -300,20 +322,3 @@ printQuestionTitle question =
   case question of
     Nothing -> div [][text "Waiting all players to be ready..."]
     Just q -> text q.title
-
-fiveLetterEnglishWord = Random.String.string 5 Random.Char.english
-
-createGame : String -> GameSettings -> Cmd Msg
-createGame url settings =
-  Http.post
-    { url = url ++ "/quizz/"
-    , body = Http.jsonBody (createGameSettings settings)
-    , expect = Http.expectString GameCreated
-    }
-
-createGameSettings: GameSettings -> Value
-createGameSettings settings = 
-  object
-    [ ("name", Json.Encode.string settings.name)
-    , ("timeout", Json.Encode.int settings.timeout)
-    ]

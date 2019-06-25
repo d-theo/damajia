@@ -27,6 +27,7 @@ export class Game {
       }
       try {
         quizz.players.setPlayerReady(data.playerName, data.isReady);
+        this.dispatcher.dispatch(quizz, 'player_ready', {info: `${data.playerName} is${data.isReady ? " " : " not "}ready`});
         if (quizz.players.areAllReady()) {
           this.bus.emit('game_start', {});
         }
@@ -37,6 +38,7 @@ export class Game {
     this.bus.on('player_joined', (data: {playerName: string}) => {
       try {
         this.quizz.players.addPlayer(data.playerName);
+        this.dispatcher.dispatch(quizz, 'player_joined', {info: data.playerName + " joined the game"});
       } catch(e) {
         this.dispatcher.dispatch(quizz, 'error', e);
       }
@@ -48,6 +50,9 @@ export class Game {
     });
     this.bus.on('timeout', (data: {id: string}) => {
       if (data.id) {
+        if (quizz.isFinished) {
+          return;
+        }
         if (quizz.currentQuestion && quizz.currentQuestion.id !== data.id) {
           console.log('timeout aborted');
           return;
@@ -84,7 +89,7 @@ export class Game {
       this.dispatcher.dispatch(this.quizz, 'round_report', report);
     });
     this.bus.on('game_report', (data) => {
-      this.dispatcher.dispatch(this.quizz, 'game_report', {});
+      this.dispatcher.dispatch(this.quizz, 'game_report', {score: quizz.getFinalScore()});
     });
     this.bus.on('player_answer_question', (data: {playerName: string,questionId: string,answerId: number}) => {
       try {
