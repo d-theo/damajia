@@ -12,10 +12,9 @@ import Random.Char
 import Random
 import List.Extra
 
+import Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
 
 -- MAIN
-
-
 main =
   Browser.element
       { init = init
@@ -24,15 +23,11 @@ main =
       , view = view
       }
 
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     receiveMessage GameEvent
 
-
 port sendMessage : (String,String) -> Cmd msg
-
-
 port receiveMessage : (Value -> msg) -> Sub msg
 
 -- MODEL
@@ -40,6 +35,15 @@ type View
   = LobbyView
   | PlayerLobbyView
   | GameView
+
+type alias GameSettings = 
+  { name: String
+  , timeout: Int
+  }
+
+type alias AppConfig =
+  { api_url : String
+  }
 
 type alias Model =
     { messages : List String
@@ -57,14 +61,21 @@ type alias Model =
     , appConfig: AppConfig
     }
 
-type alias GameSettings = 
-  { name: String
-  , timeout: Int
-  }
-
-type alias AppConfig =
-  { api_url : String
-  }
+type Msg
+    = GameEvent Value
+    | SubmitAnswer Int
+    | ChangePlayerName String
+    | JoinGame
+    | GameReady
+    | ChangeGameId String
+    | ChangeQuestionNumber String
+    | ChangeTimeout String
+    | CreateGame
+    | GameCreated (Result Http.Error String)
+    | LobbyToPlayerLobby
+    | PlayerLobbyToGame
+    | RandomGameName String
+    | RandomPlayerName String
 
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
@@ -87,113 +98,6 @@ init config =
       , Random.generate RandomPlayerName fiveLetterEnglishWord
       ]
     )
-
-type Msg
-    = GameEvent Value
-    | SubmitAnswer Int
-    | ChangePlayerName String
-    | JoinGame
-    | GameReady
-    | ChangeGameId String
-    | ChangeQuestionNumber String
-    | ChangeTimeout String
-    | CreateGame
-    | GameCreated (Result Http.Error String)
-    | LobbyToPlayerLobby
-    | PlayerLobbyToGame
-    | RandomGameName String
-    | RandomPlayerName String
-
-type GameMessage
-  = NextQuestion GameQuestion
-  | RoundRecap (List PlayerRoundRecap)
-  | GameFinished GameScore
-  | ErrorParse String
--- JSON Decode
-
-gameMessage: Decoder GameMessage
-gameMessage = 
-  oneOf
-    [ map NextQuestion gameQuestion
-    , map GameFinished gameScore
-    , map RoundRecap roundRecap
-    ]
-
-errorParse: GameMessage
-errorParse = ErrorParse "error parsing"
-
-type alias GameScore = 
-  { score: List PlayerScore
-  }
-
-type alias PlayerRoundRecap =
-  { playerName: String
-  , answer: Int
-  , goodAnswer: Int
-  , questionId: String
-  }
-
-type alias GameQuestion = 
-  { id: String
-  , title: String
-  , possibleResponses: List PossibleResponse
-  }
-
-type alias PossibleResponse =
-  { id: Int
-  , text: String
-  }
-
-type alias PlayerScore = 
-  { playerName: String
-  , score: Int
-  }
-
-possibleResponses: Decoder PossibleResponse
-possibleResponses = 
-  map2 PossibleResponse
-    (field "id" int)
-    (field "text" string)
-
-gameQuestion: Decoder GameQuestion
-gameQuestion = 
-  map3 GameQuestion
-    (field "id" string)
-    (field "title" string)
-    (field "possibleResponses" (list possibleResponses))
-
-gameScore: Decoder GameScore
-gameScore = 
-  map GameScore
-    (field "score" (list playerScore))
-
-playerScore: Decoder PlayerScore
-playerScore = 
-  map2 PlayerScore
-    (field "playerName" string)
-    (field "score" int)
-
-roundRecap: Decoder (List PlayerRoundRecap)
-roundRecap = Json.Decode.list playerRoundRecap
-
-playerRoundRecap: Decoder PlayerRoundRecap
-playerRoundRecap =
-  map4 PlayerRoundRecap
-    (field "playerName" string)
-    (field "answer" int)
-    (field "goodAnswer" int)
-    (field "questionId" string)
-
-parseGameEvent: Value -> GameMessage
-parseGameEvent value = 
-  let 
-    parsed = decodeValue gameMessage value
-    data = case parsed of
-      Ok evt -> evt
-      Err err -> ErrorParse (errorToString err)
-  in
-    data
-
 -- UPDATE game_finished next_question
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -352,21 +256,6 @@ lobbyView model =
         ]
     ]
 
-createGame : String -> GameSettings -> Cmd Msg
-createGame url settings =
-  Http.post
-    { url = url ++ "/quizz/"
-    , body = Http.jsonBody (createGameSettings settings)
-    , expect = Http.expectString GameCreated
-    }
-
-createGameSettings: GameSettings -> Value
-createGameSettings settings = 
-  object
-    [ ("name", Json.Encode.string settings.name)
-    , ("timeout", Json.Encode.int settings.timeout)
-    ]
-
 gameView: Model -> Html Msg
 gameView model = 
   div []
@@ -413,3 +302,18 @@ printQuestionTitle question =
     Just q -> text q.title
 
 fiveLetterEnglishWord = Random.String.string 5 Random.Char.english
+
+createGame : String -> GameSettings -> Cmd Msg
+createGame url settings =
+  Http.post
+    { url = url ++ "/quizz/"
+    , body = Http.jsonBody (createGameSettings settings)
+    , expect = Http.expectString GameCreated
+    }
+
+createGameSettings: GameSettings -> Value
+createGameSettings settings = 
+  object
+    [ ("name", Json.Encode.string settings.name)
+    , ("timeout", Json.Encode.int settings.timeout)
+    ]
