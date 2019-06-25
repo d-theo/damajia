@@ -46,21 +46,21 @@ type alias AppConfig =
   }
 
 type alias Model =
-    { messages : List String
-    , view: View
+    { view: View
+    , errorMessage: String
+    , appConfig: AppConfig
+    , logs: List String
     , gameId: String
     , playerName: String
+    , isReady: Bool
+    , isJoined: Bool
+    , timeout: Int
+    , numberOfQuestions: Int
     , currentQuestion : Maybe GameQuestion
     , currentChoice: Int
     , finalScore: GameScore
-    , isReady: Bool
-    , isJoined: Bool
-    , errorMessage: String
-    , timeout: Int
-    , numberOfQuestions: Int
     , currentRecap: PlayerRoundRecap
-    , appConfig: AppConfig
-    , lobbyLogs: List String
+    , gameSettings: GameSettingsModel {playerName: String}
     }
 
 type Msg
@@ -78,11 +78,25 @@ type Msg
     | PlayerLobbyToGame
     | RandomGameName String
     | RandomPlayerName String
+    | GameSettingsMsg GameSettingsMsg
+
+type GameSettingsMsg
+  = ChangePlayerNameX String
+{-| ChangeQuestionNumberX String
+  | ChangeTimeoutX String
+  | ChangeGameIdX String-}
+
+type alias GameSettingsModel r =
+  { r 
+    | playerName: String
+  }
+
+setPlayerName: String -> GameSettingsModel r -> GameSettingsModel r
+setPlayerName name game = {game | playerName = name}
 
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
-    ( { messages = []
-      , view = LobbyView
+    ( { view = LobbyView
       , gameId = "test"
       , playerName = "theo"
       , currentQuestion = Nothing
@@ -95,7 +109,8 @@ init config =
       , numberOfQuestions = -1
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
-      , lobbyLogs = []
+      , logs = []
+      , gameSettings = {playerName = ""}
       }
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
@@ -105,9 +120,17 @@ init config =
 
 -- UPDATE
 
+updateGameSettings: GameSettingsMsg -> Model -> ( Model, Cmd Msg )
+updateGameSettings msg model = 
+  case msg of 
+    ChangePlayerNameX name -> ( {model | gameSettings = setPlayerName name model.gameSettings}, Cmd.none )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
+    GameSettingsMsg smsg ->
+      updateGameSettings smsg model
     RandomGameName randomId -> 
       ({model | gameId = randomId}, Cmd.none)
     RandomPlayerName randomId -> 
@@ -126,7 +149,7 @@ update msg model =
             ErrorParse err ->
               ({model | errorMessage = err}, Cmd.none)
             LobbyLog log ->
-              ({model | lobbyLogs = (model.lobbyLogs ++ [log.info])}, Cmd.none)
+              ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
     ChangePlayerName playerName ->
         ( { model | playerName = playerName }, Cmd.none )
     ChangeGameId gameId -> ( { model | gameId = gameId }, Cmd.none )
@@ -264,6 +287,8 @@ lobbyView model =
             []
         , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
             [ text "join" ]
+        , input [ onInput (GameSettingsMsg << ChangePlayerNameX ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.gameSettings.playerName ]
+          []
         ]
     ]
 
@@ -288,7 +313,7 @@ playerLobbyView model =
     , button [ onClick GameReady, class ("btn btn-block "++if model.isReady then "btn-danger" else if model.isJoined then "btn-success" else "btn-secondary"), disabled (not model.isJoined) ]
       [ text (if model.isReady then "Not Ready" else "Ready") ]
     , ul [ class "d-flex flex-column" ]
-        (List.map (\log -> li [] [ h5 [] [text log ]]) model.lobbyLogs)
+        (List.map (\log -> li [] [ h5 [] [text log ]]) model.logs)
     ]
 
 gameFinishedView: Model -> Html Msg
