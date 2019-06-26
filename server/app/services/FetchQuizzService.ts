@@ -10,7 +10,7 @@ export class FetchQuizzService {
   difficulty: "medium" | "easy" | "hard";
   type: "multiple" | "boolean";
   categoryMap = {
-    9: "",
+    9: "General knowledge",
     10: "",
     11: "",
     12: "",
@@ -43,7 +43,7 @@ export class FetchQuizzService {
     const difficulty = "medium";
     const type = "multiple";
     const url `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=${type}&difficulty=${difficulty}`;*/
-    const url = "https://opentdb.com/api.php?amount=10&type=multiple&encode=base64";
+    const url = "https://opentdb.com/api.php?category=9&amount=10&type=multiple&encode=base64";
     const mapper = mapObject((questionAPI: QuestionAPI) => {
       const builder = new QuestionBuilder().withTitle(atob(questionAPI.question));
       for (let incorrect of questionAPI.incorrect_answers) {
