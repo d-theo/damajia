@@ -162,16 +162,11 @@ updateGame msg model =
     gameEvent = parseGameEvent msg
   in
     case gameEvent of
-      NextQuestion question ->
-        ({model | currentQuestion = (Just question)}, Cmd.none)
-      RoundRecap recap ->
-        ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
-      GameFinished score ->
-        ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
-      ErrorParse err ->
-        ({model | errorMessage = err}, Cmd.none)
-      LobbyLog log ->
-        ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
+      NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1}, Cmd.none)
+      RoundRecap recap -> ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
+      GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
+      ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
+      LobbyLog log -> ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -204,9 +199,12 @@ update msg model =
       , sendMessagePlayerReady model.playerName model.gameId model.isReady
       )
     SubmitAnswer answerId ->
-      ( {model | currentChoice = answerId}
-      , sendMessageSubmitAnswer model.playerName model.gameId ((Maybe.withDefault {title = "", id = "", possibleResponses = []} model.currentQuestion).id) answerId
-      )
+      if model.currentChoice == -1 then
+        ( {model | currentChoice = answerId}
+        , sendMessageSubmitAnswer model.playerName model.gameId ((Maybe.withDefault {title = "", id = "", possibleResponses = []} model.currentQuestion).id) answerId
+        )
+      else 
+        (model, Cmd.none)
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
 
@@ -295,8 +293,6 @@ lobbyView model =
             []
         , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
             [ text "join" ]
-        , input [ onInput (GameSettingsMsg << ChangePlayerName ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.playerName ]
-          []
         ]
     ]
 
@@ -342,7 +338,7 @@ printQuestionChoices model question =
       if q.id == model.currentRecap.questionId then
         (List.map (\choice -> li [class ("hoverable alert alert-"++(questionGoodColor choice.id model.currentRecap.answer model.currentRecap.goodAnswer)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
       else
-        (List.map (\choice -> li [class "hoverable alert alert-primary", onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
+        (List.map (\choice -> li [class ("hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
 
 questionGoodColor: Int -> Int -> Int -> String
 questionGoodColor answerId playerChoice goodAnswer = 
@@ -350,6 +346,9 @@ questionGoodColor answerId playerChoice goodAnswer =
   else if playerChoice == answerId && answerId /= goodAnswer then "danger"
   else if answerId == goodAnswer then "success"
   else "primary"
+
+colorQuestion: Int -> Int -> String
+colorQuestion choiceId selfChoiceId = if choiceId == selfChoiceId then "alert-secondary" else "alert-primary"
 
 printQuestionTitle: Maybe GameQuestion -> Html Msg
 printQuestionTitle question =
