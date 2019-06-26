@@ -29,6 +29,15 @@ subscriptions model =
 port sendMessage : (String,String) -> Cmd msg
 port receiveMessage : (Value -> msg) -> Sub msg
 
+sendMessagePlayerJoin: String -> String -> Cmd msg
+sendMessagePlayerJoin playerName gameId = sendMessage ("join", (String.join "," [playerName, gameId]))
+
+sendMessagePlayerReady: String -> String -> Bool -> Cmd msg
+sendMessagePlayerReady playerName gameId isReady = sendMessage ("ready", (String.join "," [ playerName, gameId, (if isReady then "false" else "true") ]))
+
+sendMessageSubmitAnswer: String -> String -> String -> Int -> Cmd msg
+sendMessageSubmitAnswer playerName gameId questionid answerid = sendMessage ("submit", (String.join "," [ playerName, gameId, questionid, String.fromInt answerid]))
+
 -- MODEL
 type View 
   = LobbyView
@@ -184,35 +193,16 @@ update msg model =
         , if model.playerName == "" then
             Cmd.none
           else
-            sendMessage (
-              "join",
-              (String.join ","
-              [ model.playerName
-              , model.gameId
-              ]
-              ))
+            sendMessagePlayerJoin model.playerName model.gameId
         )
     GameReady ->
-      ({model | isReady = not model.isReady, view = GameView}
-      , sendMessage (
-        "ready",
-        (String.join ","
-        [ model.playerName
-        , model.gameId
-        , if model.isReady then "false" else "true"
-        ]
-        ))
+      ( {model | isReady = not model.isReady, view = GameView}
+      , sendMessagePlayerReady model.playerName model.gameId model.isReady
       )
-    SubmitAnswer i ->
-      ({model | currentChoice = i}, sendMessage (
-        "submit",
-        (String.join "," 
-        [ model.playerName
-        , model.gameId
-        , (Maybe.withDefault {title = "", id = "", possibleResponses = []} model.currentQuestion).id
-        , String.fromInt i]
-        )
-      ))
+    SubmitAnswer answerId ->
+      ( {model | currentChoice = answerId}
+      , sendMessageSubmitAnswer model.playerName model.gameId ((Maybe.withDefault {title = "", id = "", possibleResponses = []} model.currentQuestion).id) answerId
+      )
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
 
