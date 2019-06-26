@@ -22,6 +22,7 @@ main =
       , view = view
       }
 
+-- NETWORK
 subscriptions : Model -> Sub Msg
 subscriptions model =
     receiveMessage GameEvent
@@ -29,14 +30,17 @@ subscriptions model =
 port sendMessage : (String,String) -> Cmd msg
 port receiveMessage : (Value -> msg) -> Sub msg
 
+send : String -> List String -> Cmd msg
+send msg array = sendMessage (msg, (String.join "," array)) -- hack: la lib ne permet d'envoyer que des strings, on parsera côté JS avec les ','
+
 sendMessagePlayerJoin: String -> String -> Cmd msg
-sendMessagePlayerJoin playerName gameId = sendMessage ("join", (String.join "," [playerName, gameId]))
+sendMessagePlayerJoin playerName gameId = send "join" [playerName, gameId]
 
 sendMessagePlayerReady: String -> String -> Bool -> Cmd msg
-sendMessagePlayerReady playerName gameId isReady = sendMessage ("ready", (String.join "," [ playerName, gameId, (if isReady then "false" else "true") ]))
+sendMessagePlayerReady playerName gameId isReady = send "ready" [playerName, gameId, (if isReady then "false" else "true") ]
 
 sendMessageSubmitAnswer: String -> String -> String -> Int -> Cmd msg
-sendMessageSubmitAnswer playerName gameId questionid answerid = sendMessage ("submit", (String.join "," [ playerName, gameId, questionid, String.fromInt answerid]))
+sendMessageSubmitAnswer playerName gameId questionid answerid = send "submit" [ playerName, gameId, questionid, String.fromInt answerid]
 
 -- MODEL
 type View 
