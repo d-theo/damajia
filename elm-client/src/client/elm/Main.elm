@@ -312,7 +312,8 @@ gameView model =
 playerLobbyView: Model -> Html Msg
 playerLobbyView model =
   div []
-    [ label [ class "small text-uppercase font-weight-bolder" ]
+    [ h5 [] [ text ("Your game id : "  ++ model.gameId) ]
+    , label [ class "small text-uppercase font-weight-bolder" ]
         [ text "your name" ]
     , input [ onInput (GameSettingsMsg << ChangePlayerName), attribute "autocomplete" "off", class "form-control", name "newgameplayer", type_ "text", placeholder "name", value model.playerName]
         []
