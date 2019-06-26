@@ -65,12 +65,8 @@ type alias Model =
 type Msg
     = GameEvent Value
     | SubmitAnswer Int
-    | ChangePlayerName String
     | JoinGame
     | GameReady
-    | ChangeGameId String
-    | ChangeQuestionNumber String
-    | ChangeTimeout String
     | CreateGame
     | GameCreated (Result Http.Error String)
     | LobbyToPlayerLobby
@@ -80,14 +76,27 @@ type Msg
     | GameSettingsMsg GameSettingsMsg
 
 type GameSettingsMsg
-  = ChangePlayerNameX String
-{-| ChangeQuestionNumberX String
-  | ChangeTimeoutX String
-  | ChangeGameIdX String-}
+  = ChangePlayerName String
+  | ChangeQuestionNumber String
+  | ChangeTimeout String
+  | ChangeGameId String
 
 type alias GameSettingsModel r =
   { r 
     | playerName: String
+    , gameId: String
+    , timeout: Int
+    , numberOfQuestions: Int
+  }
+
+type alias GameStateModel r =
+  { r 
+    | isReady: Bool
+    , isJoined: Bool
+    , currentQuestion: Maybe GameQuestion
+    , currentChoice: Int
+    , finalScore: GameScore
+    , currentRecap: PlayerRoundRecap
   }
 
 init : AppConfig -> ( Model, Cmd Msg )
@@ -117,11 +126,39 @@ init config =
 setPlayerName: String -> GameSettingsModel r -> GameSettingsModel r
 setPlayerName name game = {game | playerName = name}
 
+setGameId: String -> GameSettingsModel r -> GameSettingsModel r
+setGameId gameId game = {game | gameId = gameId}
+
+setTimeout: Int -> GameSettingsModel r -> GameSettingsModel r
+setTimeout timeout game = {game | timeout = timeout}
+
+setNumberOfQuestions: Int -> GameSettingsModel r -> GameSettingsModel r
+setNumberOfQuestions nb game = {game | numberOfQuestions = nb}
+
 updateGameSettings: GameSettingsMsg -> Model -> ( Model, Cmd Msg )
 updateGameSettings msg model = 
   case msg of 
-    ChangePlayerNameX name ->(setPlayerName name model, Cmd.none )
+    ChangePlayerName name ->(setPlayerName name model, Cmd.none )
+    ChangeQuestionNumber nb ->(setNumberOfQuestions (Maybe.withDefault -1 (String.toInt nb)) model, Cmd.none )
+    ChangeTimeout t ->(setTimeout (Maybe.withDefault -1 (String.toInt t)) model, Cmd.none )
+    ChangeGameId id ->(setGameId id model, Cmd.none )
 
+updateGame: Value -> Model -> ( Model, Cmd Msg )
+updateGame msg model = 
+  let
+    gameEvent = parseGameEvent msg
+  in
+    case gameEvent of
+      NextQuestion question ->
+        ({model | currentQuestion = (Just question)}, Cmd.none)
+      RoundRecap recap ->
+        ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
+      GameFinished score ->
+        ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
+      ErrorParse err ->
+        ({model | errorMessage = err}, Cmd.none)
+      LobbyLog log ->
+        ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -133,27 +170,7 @@ update msg model =
     RandomPlayerName randomId -> 
       ({model | playerName = randomId}, Cmd.none)
     GameEvent rawEvent ->
-      let 
-        gameEvent = parseGameEvent rawEvent
-      in 
-        case gameEvent of
-            NextQuestion question ->
-              ({model | currentQuestion = (Just question)}, Cmd.none)
-            RoundRecap recap ->
-              ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
-            GameFinished score ->
-              ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
-            ErrorParse err ->
-              ({model | errorMessage = err}, Cmd.none)
-            LobbyLog log ->
-              ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
-    ChangePlayerName playerName ->
-        ( { model | playerName = playerName }, Cmd.none )
-    ChangeGameId gameId -> ( { model | gameId = gameId }, Cmd.none )
-    ChangeQuestionNumber numberOfQuestions -> 
-      ( { model | numberOfQuestions = Maybe.withDefault -1 (String.toInt numberOfQuestions) }, Cmd.none )
-    ChangeTimeout timeout -> 
-      ( { model | timeout = Maybe.withDefault -1 (String.toInt timeout) }, Cmd.none )
+      updateGame rawEvent model
     GameCreated res -> 
       case res of
         Ok gameId ->
@@ -186,8 +203,6 @@ update msg model =
         ]
         ))
       )
-    LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
-    PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
     SubmitAnswer i ->
       ({model | currentChoice = i}, sendMessage (
         "submit",
@@ -198,6 +213,8 @@ update msg model =
         , String.fromInt i]
         )
       ))
+    LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
+    PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
 
 
 createGame : String -> GameSettings -> Cmd Msg
@@ -247,21 +264,21 @@ lobbyView model =
             [ div []
                 [ label [ class "small text-sm text-uppercase font-weight-bolder" ]
                     [ text "game name" ]
-                , input [ onInput ChangeGameId, attribute "autocomplete" "off", class "form-control", name "newgameid", placeholder "game id", type_ "text", value model.gameId]
+                , input [ onInput (GameSettingsMsg << ChangeGameId), attribute "autocomplete" "off", class "form-control", name "newgameid", placeholder "game id", type_ "text", value model.gameId]
                     []
                 , text "            "
                 ]              
             , div []
                 [ label [ class "small text-uppercase font-weight-bolder" ]
                     [ text "number of questions" ]
-                , input [ onInput ChangeQuestionNumber, attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value "10" ]
+                , input [ onInput (GameSettingsMsg << ChangeQuestionNumber), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value "10" ]
                     []
                 , text "            "
                 ]
             , div []
                 [ label [ class "small text-uppercase font-weight-bolder" ]
                     [ text "timeout" ]
-                , input [ onInput ChangeTimeout, attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value (String.fromInt model.timeout) ]
+                , input [ onInput (GameSettingsMsg << ChangeTimeout), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value (String.fromInt model.timeout) ]
                     []
                 , text "            "
                 ]
@@ -280,11 +297,11 @@ lobbyView model =
     , div []
         [ h4 []
             [ text "Join a game" ]
-        , input [ onInput ChangeGameId, attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text" ]
+        , input [ onInput (GameSettingsMsg << ChangeGameId), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text" ]
             []
         , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
             [ text "join" ]
-        , input [ onInput (GameSettingsMsg << ChangePlayerNameX ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.playerName ]
+        , input [ onInput (GameSettingsMsg << ChangePlayerName ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.playerName ]
           []
         ]
     ]
@@ -303,7 +320,7 @@ playerLobbyView model =
   div []
     [ label [ class "small text-uppercase font-weight-bolder" ]
         [ text "your name" ]
-    , input [ onInput ChangePlayerName, attribute "autocomplete" "off", class "form-control", name "newgameplayer", type_ "text", placeholder "name", value model.playerName]
+    , input [ onInput (GameSettingsMsg << ChangePlayerName), attribute "autocomplete" "off", class "form-control", name "newgameplayer", type_ "text", placeholder "name", value model.playerName]
         []
     , button [ onClick JoinGame, class ("btn btn-block " ++ if model.isJoined then "btn-secondary" else "btn-primary"), disabled model.isJoined]
       [ text "join game" ]
