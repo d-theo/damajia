@@ -60,7 +60,6 @@ type alias Model =
     , currentChoice: Int
     , finalScore: GameScore
     , currentRecap: PlayerRoundRecap
-    , gameSettings: GameSettingsModel {playerName: String}
     }
 
 type Msg
@@ -91,9 +90,6 @@ type alias GameSettingsModel r =
     | playerName: String
   }
 
-setPlayerName: String -> GameSettingsModel r -> GameSettingsModel r
-setPlayerName name game = {game | playerName = name}
-
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
     ( { view = LobbyView
@@ -110,7 +106,6 @@ init config =
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
       , logs = []
-      , gameSettings = {playerName = ""}
       }
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
@@ -119,11 +114,13 @@ init config =
     )
 
 -- UPDATE
+setPlayerName: String -> GameSettingsModel r -> GameSettingsModel r
+setPlayerName name game = {game | playerName = name}
 
 updateGameSettings: GameSettingsMsg -> Model -> ( Model, Cmd Msg )
 updateGameSettings msg model = 
   case msg of 
-    ChangePlayerNameX name -> ( {model | gameSettings = setPlayerName name model.gameSettings}, Cmd.none )
+    ChangePlayerNameX name ->(setPlayerName name model, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -287,7 +284,7 @@ lobbyView model =
             []
         , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
             [ text "join" ]
-        , input [ onInput (GameSettingsMsg << ChangePlayerNameX ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.gameSettings.playerName ]
+        , input [ onInput (GameSettingsMsg << ChangePlayerNameX ), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text", value model.playerName ]
           []
         ]
     ]
