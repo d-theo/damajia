@@ -27,7 +27,8 @@ export class Game {
       }
       try {
         quizz.players.setPlayerReady(data.playerName, data.isReady);
-        this.dispatcher.dispatch(quizz, 'player_ready', {info: `${data.playerName} is${data.isReady ? " " : " not "}ready`});
+        this.quizz.logs.push(`${data.playerName} is${data.isReady ? " " : " not "}ready`);
+        this.dispatcher.dispatch(quizz, 'player_ready', {logs: this.quizz.logs});
         if (quizz.players.areAllReady()) {
           this.bus.emit('game_start', {});
         }
@@ -38,7 +39,8 @@ export class Game {
     this.bus.on('player_joined', (data: {playerName: string}) => {
       try {
         this.quizz.players.addPlayer(data.playerName);
-        this.dispatcher.dispatch(quizz, 'player_joined', {info: data.playerName + " joined the game"});
+        this.quizz.logs.push(`${data.playerName} joined the game`);
+        this.dispatcher.dispatch(quizz, 'player_joined', {logs: this.quizz.logs});
       } catch(e) {
         this.dispatcher.dispatch(quizz, 'error', e);
       }

@@ -17,7 +17,7 @@ export class QuizzController {
       const quizz = new Quizz();
       quizz.id = settings.name;
       quizz.timeout = settings.timeout;
-      quizz.questions = await new FetchQuizzService({}).fetch();
+      quizz.questions = await new FetchQuizzService({numberOfQuestions: settings.numberOfquestions}).fetch();
       await this.quizzRepository.add(quizz);
       return quizz;
     } catch (e) {

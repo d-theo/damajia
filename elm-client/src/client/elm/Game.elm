@@ -8,10 +8,10 @@ type GameMessage
   | RoundRecap (List PlayerRoundRecap)
   | GameFinished GameScore
   | ErrorParse String
-  | LobbyLog Log
+  | LobbyLog Logs
 
-type alias Log =
-  {info: String}
+type alias Logs =
+  {logs: (List String)}
 
 type alias GameScore = 
   { score: List PlayerScore
@@ -57,9 +57,9 @@ gameMessage =
     , map LobbyLog lobbyLog
     ]
 
-lobbyLog: Decoder Log
+lobbyLog: Decoder Logs
 lobbyLog = 
-  map Log (field "info" string)
+  map Logs (field "logs" (list string))
 
 errorParse: GameMessage
 errorParse = ErrorParse "error parsing"

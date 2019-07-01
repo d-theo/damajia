@@ -13,6 +13,7 @@ export class Quizz {
   isStarted = false;
   isFinished = false;
   timeout = 3;
+  logs: string[] = [];
   constructor() {
     this.players = new PlayerCollection();
   }
@@ -60,7 +61,6 @@ export class Quizz {
   everybodyAnswered(questionId: string) {
     const nbResponses = this.questions.numberOfAnswerForQuestion(questionId);
     const nbPlayers = this.players.count();
-    console.log(nbPlayers, nbResponses);
     return nbPlayers === nbResponses;
   }
 }
@@ -69,4 +69,5 @@ export class Quizz {
 export interface QuizzSettings {
   name: string;
   timeout: number;
+  numberOfquestions: number;
 }

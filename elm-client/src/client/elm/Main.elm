@@ -52,6 +52,7 @@ type View
 type alias GameSettings = 
   { name: String
   , timeout: Int
+  , numberOfQuestions: Int
   }
 
 type alias AppConfig =
@@ -67,8 +68,8 @@ type alias Model =
     , playerName: String
     , isReady: Bool
     , isJoined: Bool
-    , timeout: Int
-    , numberOfQuestions: Int
+    , timeout: String
+    , numberOfQuestions: String
     , currentQuestion : Maybe GameQuestion
     , currentChoice: Int
     , finalScore: GameScore
@@ -98,8 +99,8 @@ type alias GameSettingsModel r =
   { r 
     | playerName: String
     , gameId: String
-    , timeout: Int
-    , numberOfQuestions: Int
+    , timeout: String
+    , numberOfQuestions: String
   }
 
 type alias GameStateModel r =
@@ -123,8 +124,8 @@ init config =
       , isReady = False
       , isJoined = False
       , errorMessage = ""
-      , timeout = 30
-      , numberOfQuestions = -1
+      , timeout = "30"
+      , numberOfQuestions = "10"
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
       , logs = []
@@ -142,18 +143,18 @@ setPlayerName name game = {game | playerName = name}
 setGameId: String -> GameSettingsModel r -> GameSettingsModel r
 setGameId gameId game = {game | gameId = gameId}
 
-setTimeout: Int -> GameSettingsModel r -> GameSettingsModel r
+setTimeout: String -> GameSettingsModel r -> GameSettingsModel r
 setTimeout timeout game = {game | timeout = timeout}
 
-setNumberOfQuestions: Int -> GameSettingsModel r -> GameSettingsModel r
+setNumberOfQuestions: String -> GameSettingsModel r -> GameSettingsModel r
 setNumberOfQuestions nb game = {game | numberOfQuestions = nb}
 
 updateGameSettings: GameSettingsMsg -> Model -> ( Model, Cmd Msg )
 updateGameSettings msg model = 
   case msg of 
     ChangePlayerName name ->(setPlayerName name model, Cmd.none )
-    ChangeQuestionNumber nb ->(setNumberOfQuestions (Maybe.withDefault -1 (String.toInt nb)) model, Cmd.none )
-    ChangeTimeout t ->(setTimeout (Maybe.withDefault -1 (String.toInt t)) model, Cmd.none )
+    ChangeQuestionNumber nb ->(setNumberOfQuestions nb model, Cmd.none )
+    ChangeTimeout timeout -> (setTimeout timeout model, Cmd.none )
     ChangeGameId id ->(setGameId id model, Cmd.none )
 
 updateGame: Value -> Model -> ( Model, Cmd Msg )
@@ -166,7 +167,7 @@ updateGame msg model =
       RoundRecap recap -> ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
       GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
       ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
-      LobbyLog log -> ({model | logs = (model.logs ++ [log.info])}, Cmd.none)
+      LobbyLog logs -> ({model | logs = logs.logs}, Cmd.none)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -186,7 +187,7 @@ update msg model =
         Err m ->
           (model, Cmd.none)
     CreateGame ->
-      (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= model.timeout}))
+      (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= Maybe.withDefault -1 (String.toInt model.timeout), numberOfQuestions=Maybe.withDefault -1 (String.toInt model.numberOfQuestions)}))
     JoinGame ->
         ( {model | isJoined = True}
         , if model.playerName == "" then
@@ -222,6 +223,7 @@ createGameSettings settings =
   object
     [ ("name", Json.Encode.string settings.name)
     , ("timeout", Json.Encode.int settings.timeout)
+    , ("numberOfquestions", Json.Encode.int settings.numberOfQuestions)
     ]
 
 myRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> PlayerRoundRecap
@@ -263,14 +265,14 @@ lobbyView model =
             , div []
                 [ label [ class "small text-uppercase font-weight-bolder" ]
                     [ text "number of questions" ]
-                , input [ onInput (GameSettingsMsg << ChangeQuestionNumber), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value "10" ]
+                , input [ onInput (GameSettingsMsg << ChangeQuestionNumber), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value model.numberOfQuestions ]
                     []
                 , text "            "
                 ]
             , div []
                 [ label [ class "small text-uppercase font-weight-bolder" ]
                     [ text "timeout" ]
-                , input [ onInput (GameSettingsMsg << ChangeTimeout), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value (String.fromInt model.timeout) ]
+                , input [ onInput (GameSettingsMsg << ChangeTimeout), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value model.timeout ]
                     []
                 , text "            "
                 ]

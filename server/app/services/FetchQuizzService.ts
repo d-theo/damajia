@@ -35,7 +35,9 @@ export class FetchQuizzService {
     31: "",
     32: ""
   };
-  constructor(params: any) {}
+  constructor(params: any) {
+    this.amount = params.numberOfQuestions;
+  }
 
   async fetch(): Promise<QuestionCollection> {
     /*const amount = 10;
@@ -43,7 +45,8 @@ export class FetchQuizzService {
     const difficulty = "medium";
     const type = "multiple";
     const url `https://opentdb.com/api.php?amount=${amount}&category=${category}&type=${type}&difficulty=${difficulty}`;*/
-    const url = "https://opentdb.com/api.php?category=9&amount=10&type=multiple&encode=base64";
+
+    const url = `https://opentdb.com/api.php?category=9&amount=${this.amount}&type=multiple&encode=base64`;
     const mapper = mapObject((questionAPI: QuestionAPI) => {
       const builder = new QuestionBuilder().withTitle(atob(questionAPI.question));
       for (let incorrect of questionAPI.incorrect_answers) {

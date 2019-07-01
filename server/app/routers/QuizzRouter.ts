@@ -17,7 +17,6 @@ export class QuizzRouter {
   @Path(":id")
   async getQuizz(@PathParam("id") id: string): Promise<Quizz> {
     try {
-      console.log(id);
       return await this.quizzController.getQuizz(id);
     } catch (e) {
       throw new InternalServerError(e);
