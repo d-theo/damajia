@@ -4,6 +4,7 @@ import { Inject, Singleton, AutoWired } from "typescript-ioc";
 import { QuizzRepository } from "../../repository/QuizzRepository";
 import { FetchQuizzService } from "../../services/FetchQuizzService";
 import { Game } from "./Game";
+import { FetchQuizzServiceS3 } from "../../services/FetchQuizzService.s3";
 
 @Singleton
 @AutoWired
@@ -17,7 +18,8 @@ export class QuizzController {
       const quizz = new Quizz();
       quizz.id = settings.name;
       quizz.timeout = settings.timeout;
-      quizz.questions = await new FetchQuizzService({numberOfQuestions: settings.numberOfquestions}).fetch();
+      //quizz.questions = await new FetchQuizzService({numberOfQuestions: settings.numberOfquestions}).fetch();
+      quizz.questions = await new FetchQuizzServiceS3({numberOfQuestions: settings.numberOfquestions}).fetch();
       await this.quizzRepository.add(quizz);
       return quizz;
     } catch (e) {
