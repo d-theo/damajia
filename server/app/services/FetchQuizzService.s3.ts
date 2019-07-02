@@ -1,6 +1,7 @@
 import { QuestionBuilder, Question } from "../models/Question";
 import { QuestionCollection } from "../models/QuestionCollection";
 import * as _ from 'lodash';
+import { mapObject } from "./utils";
 
 const axios = require('axios');
 
@@ -24,7 +25,7 @@ export class FetchQuizzServiceS3 {
     });
 
     const apiRes = await axios.get(url);
-    const questions: Question[] = apiRes.data.quizz.map(questionApi => mapper(questionApi));
+    const questions: Question[] = (apiRes.data as S3QuizzApi).quizz.map(questionApi => mapper(questionApi));
     const questionCollection = new QuestionCollection();
     questionCollection.questions = _.sampleSize(questions, this.amount);
     return questionCollection;
@@ -42,14 +43,4 @@ interface QuestionAPI {
   question: string;
   correct_answer: string;
   incorrect_answers: string[];
-}
-
-export function mapObject<T,R>(mapper: (o: T) => R) {
-  return (obj: T) => {
-    return mapper(obj);
-  }
-}
-
-function atob(b64) {
-  return Buffer.from(b64, 'base64').toString();
 }

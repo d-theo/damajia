@@ -2,19 +2,20 @@ import {Quizz} from '../../models/Quizz';
 import { Inject } from 'typescript-ioc';
 import { Dispatcher } from '../../routers/Dispatcher';
 import { GameBus } from './GameBus';
-const eventTypes = [
-  'timeout',
-  'all_answered',
-  'next_question',
-  'game_end',
-  'round_report',
-  'game_report',
-  'game_start',
-  'dispatch_message',
-  'player_answer_question',
-  'player_ready',
-  'player_joined'
-];
+
+export type GameEvent
+  = 'timeout'
+  | 'all_answered'
+  | 'next_question'
+  | 'game_end'
+  | 'round_report'
+  | 'game_report'
+  | 'game_start'
+  | 'dispatch_message'
+  | 'player_answer_question'
+  | 'player_ready'
+  | 'player_joined';
+
 export class Game {
   @Inject private readonly dispatcher: Dispatcher;
   @Inject private readonly bus: GameBus;
@@ -68,18 +69,18 @@ export class Game {
       this.bus.schedule('next_question', {}, 1);
     });
     this.bus.on('next_question', (data) => {
-      this.quizz.nextQuestion();
-      if (this.quizz.currentQuestion == null) {
+      const nextQuestion = this.quizz.nextQuestion();
+      if (nextQuestion == null) {
         this.bus.emit('game_end', {});
       } else {
-        quizz.questions.createEmptyAnswer(quizz.currentQuestion!.id);
+        quizz.questions.createEmptyAnswer(nextQuestion.id);
         this.dispatcher.dispatch(quizz,'next_question', {
-          id: quizz.currentQuestion!.id,
-          title: quizz.currentQuestion!.title,
-          possibleResponses: quizz.currentQuestion!.possibleResponses
+          id: nextQuestion.id,
+          title: nextQuestion.title,
+          possibleResponses: nextQuestion.possibleResponses
         });
 
-        this.bus.schedule('timeout', {id: quizz.currentQuestion!.id}, quizz.timeout);
+        this.bus.schedule('timeout', {id: nextQuestion.id}, quizz.timeout);
       }
     });
     this.bus.on('game_end', (data) => {

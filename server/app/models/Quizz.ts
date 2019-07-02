@@ -18,9 +18,10 @@ export class Quizz {
     this.players = new PlayerCollection();
   }
 
-  nextQuestion() {
+  nextQuestion(): Question | null {
     this.currentQuestion = this.questions.get(this.cptQuestion);
     this.cptQuestion++;
+    return this.currentQuestion;
   }
 
   submit(playerName: string, questionId: string, answerId: number) {
