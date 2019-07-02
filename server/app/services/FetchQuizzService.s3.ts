@@ -12,7 +12,7 @@ export class FetchQuizzServiceS3 {
   }
 
   async fetch(): Promise<QuestionCollection> {
-    const url = `https://grulitoworld.s3-eu-west-1.amazonaws.com/all.json`;
+    const url = `https://grulitoworld.s3-eu-west-1.amazonaws.com/damajia/all.json`;
     const mapper = mapObject((questionAPI: QuestionAPI) => {
       const builder = new QuestionBuilder().withTitle(questionAPI.question);
       for (let incorrect of questionAPI.incorrect_answers) {
