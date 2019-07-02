@@ -12,6 +12,10 @@ export class GameController {
   
   constructor() {}
 
+  async getById(gameId: string) {
+    return await this.gameRepository.get(gameId);
+  }
+
   async createGame(settings: QuizzSettings) {
     const quizz: Quizz = await this.quizzController.createQuizz(settings);
     const game = new Game(quizz);

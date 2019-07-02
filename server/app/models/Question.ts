@@ -43,7 +43,6 @@ export class QuestionBuilder {
       ids.push(i);
     }
     ids = this.shuffle(ids);
-    console.log(ids);
     this.answers.forEach(q => {
         q.id = ids.pop() || 0;
     });

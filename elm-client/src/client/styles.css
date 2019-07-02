@@ -7,3 +7,20 @@ body {
 .hoverable:active {
   background-color: #b8daff !important;
 }
+.popup {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  color: white;
+  background: red;
+  width: 100%;
+  height: 40px;
+  top: -40px;
+  transition: ease-in-out 0.2s;
+}
+
+.popup--visible {
+  transform: translate(0, 40px);
+}

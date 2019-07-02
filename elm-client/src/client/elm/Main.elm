@@ -4,12 +4,14 @@ import Browser
 import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, h5)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Http
+import Http exposing (Error(..))
 import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 import Json.Encode exposing (Value, object)
 import Random
 import List.Extra
-
+import Time
+import Task
+import Process
 import Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
 import RandomUtils exposing (fiveLetterEnglishWord)
 
@@ -88,6 +90,7 @@ type Msg
     | RandomGameName String
     | RandomPlayerName String
     | GameSettingsMsg GameSettingsMsg
+    | DismissError
 
 type GameSettingsMsg
   = ChangePlayerName String
@@ -185,7 +188,7 @@ update msg model =
         Ok gameId ->
           ({model | gameId = gameId, view = PlayerLobbyView}, Cmd.none)
         Err m ->
-          (model, Cmd.none)
+          ({model | errorMessage = (errorToString m)}, (delay 5 DismissError))
     CreateGame ->
       (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= Maybe.withDefault -1 (String.toInt model.timeout), numberOfQuestions=Maybe.withDefault -1 (String.toInt model.numberOfQuestions)}))
     JoinGame ->
@@ -208,7 +211,12 @@ update msg model =
         (model, Cmd.none)
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
+    DismissError -> ({model | errorMessage = ""}, Cmd.none)
 
+delay : Float -> msg -> Cmd msg
+delay time msg =
+  Process.sleep (time*1000)
+  |> Task.perform (\_ -> msg)
 
 createGame : String -> GameSettings -> Cmd Msg
 createGame url settings =
@@ -296,7 +304,13 @@ lobbyView model =
         , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
             [ text "join" ]
         ]
+    , printError model.errorMessage
     ]
+
+printError: String -> Html Msg
+printError msg = 
+  if String.isEmpty msg then div [class "popup"] [ text msg ]
+  else div [class "popup popup--visible"] [ text msg ]
 
 gameView: Model -> Html Msg
 gameView model = 
@@ -321,6 +335,7 @@ playerLobbyView model =
       [ text (if model.isReady then "Not Ready" else "Ready") ]
     , ul [ class "d-flex flex-column" ]
         (List.map (\log -> li [] [ h5 [] [text log ]]) model.logs)
+    , printError model.errorMessage
     ]
 
 gameFinishedView: Model -> Html Msg
@@ -357,3 +372,23 @@ printQuestionTitle question =
   case question of
     Nothing -> div [][text "Waiting all players to be ready..."]
     Just q -> text q.title
+
+---- Utils
+
+errorToString : Http.Error -> String
+errorToString error =
+    case error of
+        BadUrl url ->
+            "The URL " ++ url ++ " was invalid"
+        Timeout ->
+            "Unable to reach the server, try again"
+        NetworkError ->
+            "Unable to reach the server, check your network connection"
+        BadStatus 500 ->
+            "The server had a problem, try again later"
+        BadStatus 400 ->
+            "The game name already exists, try an other name."
+        BadStatus _ ->
+            "Unknown error"
+        BadBody errorMessage ->
+            errorMessage
