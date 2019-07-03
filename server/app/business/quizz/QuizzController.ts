@@ -34,4 +34,12 @@ export class QuizzController {
       throw new Error("cannot return quizz " + id);
     }
   }
+
+  async listQuizz () {
+    try {
+      return await this.quizzRepository.list();
+    } catch (e) {
+      throw new Error("cannot return quizzes ");
+    }
+  }
 }

@@ -4,7 +4,7 @@ import { Singleton, AutoWired } from "typescript-ioc";
 @Singleton
 @AutoWired
 export class QuizzRepository {
-  quizzRepo = {};
+  quizzRepo: {[id: string]: Quizz} = {};
   constructor() {}
   async add(quizz: Quizz) {
     this.quizzRepo[quizz.id] = quizz;
@@ -14,5 +14,8 @@ export class QuizzRepository {
   }
   async save(quizz: Quizz) {
     
+  }
+  async list(): Promise<Quizz[]> {
+    return Object.values(this.quizzRepo);
   }
 }

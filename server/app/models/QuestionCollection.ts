@@ -4,6 +4,10 @@ export class QuestionCollection {
   questions: Question[] = [];
   private playerAnswers: {[questionId: string]: {[playerName: string]: number}} = {};
 
+  get length() {
+    return this.questions.length;
+  }
+
   get(i: number) {
     if (i >= 0 && i < this.questions.length) {
       return this.questions[i];

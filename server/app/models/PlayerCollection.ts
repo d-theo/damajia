@@ -40,6 +40,10 @@ export class PlayerCollection {
     }
   }
 
+  list() {
+    return Object.values(this.players);
+  }
+
   getScoring (): Score[] {
     const score: Score[] = [];
     for (const pid in this.players) {
