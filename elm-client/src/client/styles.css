@@ -24,3 +24,16 @@ body {
 .popup--visible {
   transform: translate(0, 40px);
 }
+
+.timer {
+  position: absolute;
+  z-index: 999;
+  color: white;
+  background: cadetblue;
+  height: 5px;
+  left: 0;
+  bottom: 0;
+}
+.timer-animation {
+  transition: linear 1s;
+}

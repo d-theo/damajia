@@ -27,7 +27,10 @@ main =
 -- NETWORK
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    receiveMessage GameEvent
+  Sub.batch 
+  [ receiveMessage GameEvent
+  , Time.every 1000 Tick
+  ]
 
 port sendMessage : (String,String) -> Cmd msg
 port receiveMessage : (Value -> msg) -> Sub msg
@@ -76,6 +79,7 @@ type alias Model =
     , currentChoice: Int
     , finalScore: GameScore
     , currentRecap: PlayerRoundRecap
+    , timeElapsed: Int
     }
 
 type Msg
@@ -91,6 +95,7 @@ type Msg
     | RandomPlayerName String
     | GameSettingsMsg GameSettingsMsg
     | DismissError
+    | Tick Time.Posix
 
 type GameSettingsMsg
   = ChangePlayerName String
@@ -132,6 +137,7 @@ init config =
       , appConfig = config
       , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
       , logs = []
+      , timeElapsed = 0
       }
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
@@ -166,7 +172,7 @@ updateGame msg model =
     gameEvent = parseGameEvent msg
   in
     case gameEvent of
-      NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1}, Cmd.none)
+      NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1, timeElapsed = 0}, Cmd.none)
       RoundRecap recap -> ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
       GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
       ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
@@ -212,6 +218,7 @@ update msg model =
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
     DismissError -> ({model | errorMessage = ""}, Cmd.none)
+    Tick _ -> ({model | timeElapsed = model.timeElapsed + 1}, Cmd.none)
 
 delay : Float -> msg -> Cmd msg
 delay time msg =
@@ -319,7 +326,19 @@ gameView model =
         [ printQuestionTitle model.currentQuestion ]
     , ul [ class "d-flex flex-column" ]
         (printQuestionChoices model model.currentQuestion)
+    , String.toInt model.timeout
+       |> Maybe.withDefault 1
+       |> displayTimer model.timeElapsed
     ]
+
+displayTimer: Int -> Int -> Html Msg
+displayTimer timeElapsed timeout =
+  let
+    normalizedTimer = (toFloat timeElapsed / toFloat timeout) * 100
+     |> Basics.min 100
+  in
+    if timeElapsed > 0 then div [class "timer timer-animation", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
+    else div [class "timer", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
 
 playerLobbyView: Model -> Html Msg
 playerLobbyView model =
