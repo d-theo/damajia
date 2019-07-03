@@ -96,6 +96,7 @@ type Msg
     | GameSettingsMsg GameSettingsMsg
     | DismissError
     | Tick Time.Posix
+    | ReInitGame
 
 type GameSettingsMsg
   = ChangePlayerName String
@@ -121,24 +122,27 @@ type alias GameStateModel r =
     , currentRecap: PlayerRoundRecap
   }
 
+initialModel config =
+  { view = LobbyView
+  , gameId = ""
+  , playerName = ""
+  , currentQuestion = Nothing
+  , currentChoice = -1
+  , finalScore = {score = []}
+  , isReady = False
+  , isJoined = False
+  , errorMessage = ""
+  , timeout = "30"
+  , numberOfQuestions = "10"
+  , appConfig = config
+  , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
+  , logs = []
+  , timeElapsed = 0
+  }
+
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
-    ( { view = LobbyView
-      , gameId = "test"
-      , playerName = "theo"
-      , currentQuestion = Nothing
-      , currentChoice = -1
-      , finalScore = {score = []}
-      , isReady = False
-      , isJoined = False
-      , errorMessage = ""
-      , timeout = "30"
-      , numberOfQuestions = "10"
-      , appConfig = config
-      , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
-      , logs = []
-      , timeElapsed = 0
-      }
+    ( (initialModel config)
     , Cmd.batch 
       [ Random.generate RandomGameName fiveLetterEnglishWord
       , Random.generate RandomPlayerName fiveLetterEnglishWord
@@ -195,6 +199,7 @@ update msg model =
           ({model | gameId = gameId, view = PlayerLobbyView}, Cmd.none)
         Err m ->
           ({model | errorMessage = (errorToString m)}, (delay 5 DismissError))
+    ReInitGame -> (initialModel model.appConfig, Cmd.batch [ Random.generate RandomGameName fiveLetterEnglishWord, Random.generate RandomPlayerName fiveLetterEnglishWord])
     CreateGame ->
       (model, (createGame model.appConfig.api_url {name= model.gameId, timeout= Maybe.withDefault -1 (String.toInt model.timeout), numberOfQuestions=Maybe.withDefault -1 (String.toInt model.numberOfQuestions)}))
     JoinGame ->
@@ -364,6 +369,7 @@ gameFinishedView model =
         [ text "Game Finished !" ]
     , ul [ class "d-flex flex-column" ]
         (List.map (\playerScore -> li [class "alert alert-primary"] [ h5 [] [text (playerScore.playerName ++ " got " ++ (String.fromInt playerScore.score ++ " points")) ]]) model.finalScore.score)
+    , button [ onClick ReInitGame, class "btn btn-block btn-success" ] [ text "Play again !" ]
     ]
 
 printQuestionChoices : Model -> Maybe GameQuestion -> List (Html Msg)
