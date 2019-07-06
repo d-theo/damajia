@@ -1,6 +1,9 @@
 body {
   background-color: antiquewhite
 }
+li {
+  list-style-type: none;
+}
 .hoverable:hover {
   cursor: pointer;
 }
@@ -36,4 +39,44 @@ body {
 }
 .timer-animation {
   transition: linear 1s;
+}
+
+.speech-bubble {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: "Sans-serif";
+    /*background: #00aabb;*/
+    border-radius: .4em;
+    width: 35px;
+    height: 35px;
+    z-index: 999;
+}
+
+.speech-bubble-sub {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border: 20px solid transparent;
+    border-bottom: 0;
+    border-left: 0;
+    margin-left: -5px;
+    margin-bottom: -10px;
+}
+
+.smiley {
+  position: fixed;
+  z-index: 999;
+  bottom: 10%;
+  left: 40%;
+}
+.smiley-message {
+  font-size: 18pt;
+}
+.smiley-message:hover {
+  cursor: pointer;
 }

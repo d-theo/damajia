@@ -1,4 +1,4 @@
-module Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
+module Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, Log, parseGameEvent)
 
 import Json.Encode exposing (Value, object)
 import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
@@ -9,9 +9,22 @@ type GameMessage
   | GameFinished GameScore
   | ErrorParse String
   | LobbyLog Logs
+  | InGameMessage IGMessage
+
+type alias IGMessage = 
+  { text: String
+  , color: String
+  , left: Int
+  , top: Int
+  }
 
 type alias Logs =
-  {logs: (List String)}
+  {logs: (List Log)}
+
+type alias Log =
+  { text: String
+  , color: String
+  }
 
 type alias GameScore = 
   { score: List PlayerScore
@@ -55,11 +68,26 @@ gameMessage =
     , map GameFinished gameScore
     , map RoundRecap roundRecap
     , map LobbyLog lobbyLog
+    , map InGameMessage igMessage
     ]
 
 lobbyLog: Decoder Logs
 lobbyLog = 
-  map Logs (field "logs" (list string))
+  map Logs (field "logs" (list log))
+
+igMessage: Decoder IGMessage
+igMessage =
+  map4 IGMessage
+    (field "text" string)
+    (field "color" string)
+    (field "left" int)
+    (field "top" int)
+
+log: Decoder Log
+log = 
+  map2 Log
+   (field "text" string)
+   (field "color" string)
 
 errorParse: GameMessage
 errorParse = ErrorParse "error parsing"

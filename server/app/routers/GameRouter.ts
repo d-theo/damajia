@@ -16,4 +16,8 @@ export class GameRouter {
     const {playerName, gameId, questionId, answerId} = msg;
     this.gameController.submitAnswer(gameId, playerName, questionId, answerId);
   }
+  ingameMessage(msg: any) {
+    const {playerName, gameId, message} = msg;
+    this.gameController.ingameMessage(gameId, playerName, message);
+  }
 }

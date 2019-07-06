@@ -41,6 +41,12 @@ app.ports.sendMessage.subscribe(function(message) {
           questionId: msg[2],
           answerId: parseInt(msg[3], 10)
         });
+    case 'player_ingame_message':
+      socket.emit(message[0], {
+        playerName: msg[0],
+        gameId: msg[1],
+        message: msg[2],
+      });    
       break;
   }
 });
@@ -62,5 +68,9 @@ socket.on('player_ready', function(message) {
 });
 socket.on('player_joined', function(message) {
   console.log('player_joined', message);
+  app.ports.receiveMessage.send(message);
+});
+socket.on('player_ingame_message', function(message) {
+  console.log('player_ingame_message', message);
   app.ports.receiveMessage.send(message);
 });

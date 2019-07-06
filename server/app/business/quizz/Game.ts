@@ -2,6 +2,7 @@ import {Quizz} from '../../models/Quizz';
 import { Inject } from 'typescript-ioc';
 import { Dispatcher } from '../../routers/Dispatcher';
 import { GameBus } from './GameBus';
+import { randomIntFromInterval } from '../../services/utils';
 
 export type GameEvent
   = 'timeout'
@@ -14,7 +15,8 @@ export type GameEvent
   | 'dispatch_message'
   | 'player_answer_question'
   | 'player_ready'
-  | 'player_joined';
+  | 'player_joined'
+  | 'player_ingame_message';
 
 export class Game {
   @Inject private readonly dispatcher: Dispatcher;
@@ -28,8 +30,8 @@ export class Game {
       }
       try {
         quizz.players.setPlayerReady(data.playerName, data.isReady);
-        this.quizz.logs.push(`${data.playerName} is${data.isReady ? " " : " not "}ready`);
-        this.dispatcher.dispatch(quizz, 'player_ready', {logs: this.quizz.logs});
+        this.quizz.logs.addFromPlayer(quizz.players.get(data.playerName)!, `${data.playerName} is${data.isReady ? " " : " not "}ready`);
+        this.dispatcher.dispatch(quizz, 'player_ready', {logs: this.quizz.logs.list()});
         if (quizz.players.areAllReady()) {
           this.bus.emit('game_start', {});
         }
@@ -39,9 +41,9 @@ export class Game {
     });
     this.bus.on('player_joined', (data: {playerName: string}) => {
       try {
-        this.quizz.players.addPlayer(data.playerName);
-        this.quizz.logs.push(`${data.playerName} joined the game`);
-        this.dispatcher.dispatch(quizz, 'player_joined', {logs: this.quizz.logs});
+        const player = this.quizz.players.addPlayer(data.playerName);
+        this.quizz.logs.addFromPlayer(player, `${data.playerName} joined the game`);
+        this.dispatcher.dispatch(quizz, 'player_joined', {logs: this.quizz.logs.list()});
       } catch(e) {
         this.dispatcher.dispatch(quizz, 'error', e);
       }
@@ -94,19 +96,27 @@ export class Game {
     this.bus.on('game_report', (data) => {
       this.dispatcher.dispatch(this.quizz, 'game_report', {score: quizz.getFinalScore()});
     });
-    this.bus.on('player_answer_question', (data: {playerName: string,questionId: string,answerId: number}) => {
+    this.bus.on('player_answer_question', ({playerName, questionId, answerId}) => {
       try {
-        if (! quizz.canPlayerAnswerTo(data.playerName, data.questionId)) {
-         throw new Error(data.playerName + ' is not allowed to answer');
+        if (! quizz.canPlayerAnswerTo(playerName, questionId)) {
+         throw new Error(playerName + ' is not allowed to answer');
         }
-        quizz.submit(data.playerName, data.questionId, data.answerId);
-        if (quizz.everybodyAnswered(data.questionId)) {
+        quizz.submit(playerName, questionId, answerId);
+        if (quizz.everybodyAnswered(questionId)) {
           this.bus.emit('all_answered', {});
         }
       } catch (e) {
         this.dispatcher.dispatch(this.quizz, 'error', e);
       }
     });
+    this.bus.on('player_ingame_message', ({playerName, message}) => {
+      try {
+        const player = this.quizz.players.get(playerName)!;
+        this.dispatcher.dispatch(this.quizz,'player_ingame_message', {text: message, color: player.color, left:randomIntFromInterval(10,90),top:randomIntFromInterval(10,90)});
+      } catch(e) {
+        console.log('un intru tente de faire nimp');
+      }
+    })
   }
 
   getBus() {

@@ -1,18 +1,18 @@
 port module Main exposing (Model, Msg(..), init, main, receiveMessage, sendMessage, subscriptions, update, view)
 
 import Browser
-import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, h5)
+import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, h5, span)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (Error(..))
 import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
-import Json.Encode exposing (Value, object)
+import Json.Encode exposing (Value, object, string)
 import Random
 import List.Extra
 import Time
 import Task
 import Process
-import Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
+import Game exposing (Log, GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
 import RandomUtils exposing (fiveLetterEnglishWord)
 
 -- MAIN
@@ -47,6 +47,9 @@ sendMessagePlayerReady playerName gameId isReady = send "ready" [playerName, gam
 sendMessageSubmitAnswer: String -> String -> String -> Int -> Cmd msg
 sendMessageSubmitAnswer playerName gameId questionid answerid = send "submit" [ playerName, gameId, questionid, String.fromInt answerid]
 
+sendMessageSendSmiley: String -> String -> String -> Cmd msg
+sendMessageSendSmiley playerName gameId smile = send "player_ingame_message" [ playerName, gameId, smile ]
+
 -- MODEL
 type View 
   = LobbyView
@@ -64,13 +67,22 @@ type alias AppConfig =
   { api_url : String
   }
 
+type alias TempInGameMessages =
+  { text: String
+  , color: String
+  , timer: Int
+  , top: Int
+  , left: Int
+  }
+
 type alias Model =
     { view: View
     , errorMessage: String
     , appConfig: AppConfig
-    , logs: List String
+    , logs: List Log
     , gameId: String
     , playerName: String
+    , playerColor: String
     , isReady: Bool
     , isJoined: Bool
     , timeout: String
@@ -80,6 +92,7 @@ type alias Model =
     , finalScore: GameScore
     , currentRecap: PlayerRoundRecap
     , timeElapsed: Int
+    , displayedMessages: List TempInGameMessages
     }
 
 type Msg
@@ -97,6 +110,7 @@ type Msg
     | DismissError
     | Tick Time.Posix
     | ReInitGame
+    | PlayerSendSmiley String
 
 type GameSettingsMsg
   = ChangePlayerName String
@@ -126,6 +140,7 @@ initialModel config =
   { view = LobbyView
   , gameId = ""
   , playerName = ""
+  , playerColor = "#FFF"
   , currentQuestion = Nothing
   , currentChoice = -1
   , finalScore = {score = []}
@@ -138,6 +153,7 @@ initialModel config =
   , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
   , logs = []
   , timeElapsed = 0
+  , displayedMessages = []
   }
 
 init : AppConfig -> ( Model, Cmd Msg )
@@ -181,6 +197,7 @@ updateGame msg model =
       GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
       ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
       LobbyLog logs -> ({model | logs = logs.logs}, Cmd.none)
+      InGameMessage message -> ({model | displayedMessages = model.displayedMessages ++ [{text = message.text, color = message.color, timer= 2, top=message.top, left= message.left}]}, Cmd.none)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -220,10 +237,19 @@ update msg model =
         )
       else 
         (model, Cmd.none)
+    PlayerSendSmiley smile -> (model, sendMessageSendSmiley model.playerName model.gameId smile)
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
     DismissError -> ({model | errorMessage = ""}, Cmd.none)
-    Tick _ -> ({model | timeElapsed = model.timeElapsed + 1}, Cmd.none)
+    Tick _ -> ({model | timeElapsed = model.timeElapsed + 1,
+        displayedMessages = minusOne model.displayedMessages |> filterExpiredMessage}
+      , Cmd.none)
+
+minusOne: List TempInGameMessages -> List TempInGameMessages
+minusOne list = List.map (\msg -> {msg | timer = msg.timer - 1}) list
+
+filterExpiredMessage: List TempInGameMessages -> List TempInGameMessages
+filterExpiredMessage list = List.filter (\msg -> msg.timer > 0) list
 
 delay : Float -> msg -> Cmd msg
 delay time msg =
@@ -319,6 +345,16 @@ lobbyView model =
     , printError model.errorMessage
     ]
 
+-- displayFace (Maybe.withDefault "" (List.head  smiley))
+displayFace: String -> String -> String -> String -> Html Msg
+displayFace emoji color x y = 
+  div [style "position" "fixed", style "top" (x++"%"), style "left" (y++"%")] [div [style "background" color ,class "speech-bubble"]
+    [ text emoji
+    , span [style "border-top-color" color, class "speech-bubble-sub"] []
+    ]]
+
+smiley = ["🤔", "😂", "😃"]
+
 printError: String -> Html Msg
 printError msg = 
   if String.isEmpty msg then div [class "popup"] [ text msg ]
@@ -331,10 +367,20 @@ gameView model =
         [ printQuestionTitle model.currentQuestion ]
     , ul [ class "d-flex flex-column" ]
         (printQuestionChoices model model.currentQuestion)
+    , displaySmileys
+    , displayInGameMessage model.displayedMessages
     , String.toInt model.timeout
        |> Maybe.withDefault 1
        |> displayTimer model.timeElapsed
     ]
+
+displaySmileys: Html Msg
+displaySmileys =
+  ul [ class "d-flex smiley" ] (List.map (\smile -> li [onClick (PlayerSendSmiley smile),class "smiley-message"] [text smile] ) smiley)
+
+displayInGameMessage: List TempInGameMessages -> Html Msg
+displayInGameMessage messages = 
+  ul [ class "d-flex smiley" ] (List.map (\msg -> displayFace msg.text msg.color (String.fromInt msg.top) (String.fromInt msg.left)) messages)
 
 displayTimer: Int -> Int -> Html Msg
 displayTimer timeElapsed timeout =
@@ -358,7 +404,7 @@ playerLobbyView model =
     , button [ onClick GameReady, class ("btn btn-block "++if model.isReady then "btn-danger" else if model.isJoined then "btn-success" else "btn-secondary"), disabled (not model.isJoined) ]
       [ text (if model.isReady then "Not Ready" else "Ready") ]
     , ul [ class "d-flex flex-column" ]
-        (List.map (\log -> li [] [ h5 [] [text log ]]) model.logs)
+        (List.map (\log -> li [] [ h5 [style "color" log.color] [text log.text ]]) model.logs)
     , printError model.errorMessage
     ]
 

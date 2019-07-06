@@ -42,4 +42,9 @@ export class GameController {
     const game: Game = await this.gameRepository.get(gameId);
     game.getBus().emit('player_answer_question', {playerName, questionId, answerId});
   }
+
+  async ingameMessage(gameId: string, playerName: string, message: string) {
+    const game: Game = await this.gameRepository.get(gameId);
+    game.getBus().emit('player_ingame_message', {gameId, playerName, message});
+  }
 }

@@ -1,6 +1,7 @@
 import { PlayerCollection, Score } from "./PlayerCollection";
 import { QuestionCollection } from "./QuestionCollection";
 import { Question } from "./Question";
+import { LogCollection } from "./LogCollection";
 
 export class Quizz {
   id: string;
@@ -13,9 +14,11 @@ export class Quizz {
   isStarted = false;
   isFinished = false;
   timeout = 3;
-  logs: string[] = [];
+  logs: LogCollection;
+  
   constructor() {
     this.players = new PlayerCollection();
+    this.logs = new LogCollection();
   }
 
   nextQuestion(): Question | null {

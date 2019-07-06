@@ -3,12 +3,13 @@ import { Player } from "./Player";
 export class PlayerCollection {
   private players: { [name: string]: Player; } = {} 
   
-  addPlayer(playerName: string) {
+  addPlayer(playerName: string): Player {
     if (this.players[playerName]) {
       throw new Error('player name already exists');
     } else {
       this.players[playerName] = new Player(playerName);
     }
+    return this.players[playerName];
   }
   setPlayerReady(playerName: string, isReady: boolean) {
     if (!this.players[playerName]) {

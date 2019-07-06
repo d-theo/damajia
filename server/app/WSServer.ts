@@ -29,6 +29,9 @@ export class WSServer {
       socket.on('submit', msg => {
         this.router.submit(msg);
       });
+      socket.on('player_ingame_message', msg => {
+        this.router.ingameMessage(msg);
+      });
     });
   }
 
