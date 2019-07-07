@@ -90,7 +90,11 @@ export class Game {
       this.bus.emit('game_report', {});
     });
     this.bus.on('round_report', (data) => {
+      // TODO refacto
       const report = this.quizz.questions.getRecapOf(data.questionId);
+      report.forEach(r => {
+        r.color = quizz.players.get(r.playerName)!.color
+      });
       this.dispatcher.dispatch(this.quizz, 'round_report', report);
     });
     this.bus.on('game_report', (data) => {

@@ -91,6 +91,7 @@ type alias Model =
     , currentChoice: Int
     , finalScore: GameScore
     , currentRecap: PlayerRoundRecap
+    , otherPlayersRecap: List PlayerRoundRecap
     , timeElapsed: Int
     , displayedMessages: List TempInGameMessages
     }
@@ -150,7 +151,8 @@ initialModel config =
   , timeout = "30"
   , numberOfQuestions = "10"
   , appConfig = config
-  , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-"}
+  , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-", color=""}
+  , otherPlayersRecap = []
   , logs = []
   , timeElapsed = 0
   , displayedMessages = []
@@ -193,7 +195,10 @@ updateGame msg model =
   in
     case gameEvent of
       NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1, timeElapsed = 0}, Cmd.none)
-      RoundRecap recap -> ({model | currentRecap = (myRecap model.playerName model.currentQuestion recap)}, Cmd.none)
+      RoundRecap recap -> ({model
+       | currentRecap = (myRecap model.playerName model.currentQuestion recap)
+       , otherPlayersRecap = (othersRecap model.playerName model.currentQuestion recap)}
+       , Cmd.none)
       GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
       ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
       LobbyLog logs -> ({model | logs = logs.logs}, Cmd.none)
@@ -276,12 +281,19 @@ myRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> PlayerRoun
 myRecap myName question currentRoundRecap = 
   case question of 
       Nothing -> 
-        Maybe.withDefault (PlayerRoundRecap myName -1 -1 "")
+        Maybe.withDefault (PlayerRoundRecap myName -1 -1 "" "")
         (List.Extra.find (\recap -> recap.playerName == myName) currentRoundRecap)
       Just q -> 
-        Maybe.withDefault (PlayerRoundRecap myName -1 -1 q.id)
+        Maybe.withDefault (PlayerRoundRecap myName -1 -1 q.id "")
         (List.Extra.find (\recap -> recap.playerName == myName) currentRoundRecap)
 
+othersRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> (List PlayerRoundRecap)
+othersRecap myName question currentRoundRecap = 
+  case question of 
+        Nothing -> 
+          List.filter (\recap -> recap.playerName /= myName) currentRoundRecap
+        Just q -> 
+          List.filter (\recap -> recap.playerName /= myName) currentRoundRecap
 -- VIEW
 
 view : Model -> Html Msg
@@ -353,7 +365,7 @@ displayFace emoji color x y =
     , span [style "border-top-color" color, class "speech-bubble-sub"] []
     ]]
 
-smiley = ["🤔", "😂", "😃"]
+smiley = ["🤔", "😂", "😃","😭"]
 
 printError: String -> Html Msg
 printError msg = 
@@ -369,9 +381,12 @@ gameView model =
         (printQuestionChoices model model.currentQuestion)
     , displaySmileys
     , displayInGameMessage model.displayedMessages
-    , String.toInt model.timeout
-       |> Maybe.withDefault 1
-       |> displayTimer model.timeElapsed
+    , case model.currentQuestion of
+      Nothing -> div [] [] 
+      Just _ -> 
+        String.toInt model.timeout
+          |> Maybe.withDefault 1
+          |> displayTimer model.timeElapsed
     ]
 
 displaySmileys: Html Msg
@@ -424,9 +439,9 @@ printQuestionChoices model question =
     Nothing -> []
     Just q ->
       if q.id == model.currentRecap.questionId then
-        (List.map (\choice -> li [class ("hoverable alert alert-"++(questionGoodColor choice.id model.currentRecap.answer model.currentRecap.goodAnswer)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
+        (List.map (\choice -> li [class ("answer hoverable alert alert-"++(questionGoodColor choice.id model.currentRecap.answer model.currentRecap.goodAnswer)), onClick (SubmitAnswer choice.id)] ( [text choice.text]++(otherPLayersAnswers model.otherPlayersRecap choice.id))) q.possibleResponses)
       else
-        (List.map (\choice -> li [class ("hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
+        (List.map (\choice -> li [class ("answer hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
 
 questionGoodColor: Int -> Int -> Int -> String
 questionGoodColor answerId playerChoice goodAnswer = 
@@ -443,6 +458,14 @@ printQuestionTitle question =
   case question of
     Nothing -> div [][text "Waiting all players to be ready..."]
     Just q -> text q.title
+
+
+otherPLayersAnswers: List PlayerRoundRecap -> Int -> List (Html Msg)
+otherPLayersAnswers otherPlayersRecap choiceId = 
+  let 
+    answers = List.filter (\recap -> recap.answer == choiceId) otherPlayersRecap
+  in
+    List.indexedMap (\i recap -> span [class "answer-others", style "background-color" recap.color, style "left" (String.fromInt (95-i)++"%")] []) answers
 
 ---- Utils
 

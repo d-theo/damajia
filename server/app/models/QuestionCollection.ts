@@ -71,5 +71,6 @@ export interface QuestionRecap {
   playerName: string;
   answer: number;
   goodAnswer: number;
-  questionId: string
+  questionId: string;
+  color?: string;
 }

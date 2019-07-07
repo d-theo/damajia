@@ -1,7 +1,7 @@
 module Game exposing (GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, Log, parseGameEvent)
 
 import Json.Encode exposing (Value, object)
-import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
+import Json.Decode exposing (Decoder, field, string, map4, map5, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 
 type GameMessage
   = NextQuestion GameQuestion
@@ -39,6 +39,7 @@ type alias PlayerRoundRecap =
   , answer: Int
   , goodAnswer: Int
   , questionId: String
+  , color: String
   }
 
 type alias GameQuestion = 
@@ -121,8 +122,9 @@ roundRecap = Json.Decode.list playerRoundRecap
 
 playerRoundRecap: Decoder PlayerRoundRecap
 playerRoundRecap =
-  map4 PlayerRoundRecap
+  map5 PlayerRoundRecap
     (field "playerName" string)
     (field "answer" int)
     (field "goodAnswer" int)
     (field "questionId" string)
+    (field "color" string)

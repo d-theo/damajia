@@ -80,3 +80,14 @@ li {
 .smiley-message:hover {
   cursor: pointer;
 }
+.answer {
+  position: relative;
+}
+.answer-others {
+  position: absolute;
+  z-index: 999;
+  top: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+}
