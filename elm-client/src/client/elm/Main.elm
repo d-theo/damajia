@@ -1,19 +1,22 @@
-port module Main exposing (Model, Msg(..), init, main, receiveMessage, sendMessage, subscriptions, update, view)
+port module Main exposing (init, main, receiveMessage, sendMessage, subscriptions, update, view)
 
 import Browser
 import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, h5, span)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (Error(..))
-import Json.Decode exposing (Decoder, field, string, map4, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 import Json.Encode exposing (Value, object, string)
 import Random
 import List.Extra
 import Time
 import Task
 import Process
-import Game exposing (Log, GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, parseGameEvent)
+import ServerDecoder exposing (parseServerEvent)
 import RandomUtils exposing (fiveLetterEnglishWord)
+import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, initialModel, GameSettingsMsg(..), TempInGameMessages, GameSettings, GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, Log)
+import GamePage exposing (gameView)
+import HomePage exposing (lobbyView)
+import LobbyPage exposing (playerLobbyView)
 
 -- MAIN
 main =
@@ -50,114 +53,6 @@ sendMessageSubmitAnswer playerName gameId questionid answerid = send "submit" [ 
 sendMessageSendSmiley: String -> String -> String -> Cmd msg
 sendMessageSendSmiley playerName gameId smile = send "player_ingame_message" [ playerName, gameId, smile ]
 
--- MODEL
-type View 
-  = LobbyView
-  | PlayerLobbyView
-  | GameView
-  | GameFinishedView
-
-type alias GameSettings = 
-  { name: String
-  , timeout: Int
-  , numberOfQuestions: Int
-  }
-
-type alias AppConfig =
-  { api_url : String
-  }
-
-type alias TempInGameMessages =
-  { text: String
-  , color: String
-  , timer: Int
-  , top: Int
-  , left: Int
-  }
-
-type alias Model =
-    { view: View
-    , errorMessage: String
-    , appConfig: AppConfig
-    , logs: List Log
-    , gameId: String
-    , playerName: String
-    , playerColor: String
-    , isReady: Bool
-    , isJoined: Bool
-    , timeout: String
-    , numberOfQuestions: String
-    , currentQuestion : Maybe GameQuestion
-    , currentChoice: Int
-    , finalScore: GameScore
-    , currentRecap: PlayerRoundRecap
-    , otherPlayersRecap: List PlayerRoundRecap
-    , timeElapsed: Int
-    , displayedMessages: List TempInGameMessages
-    }
-
-type Msg
-    = GameEvent Value
-    | SubmitAnswer Int
-    | JoinGame
-    | GameReady
-    | CreateGame
-    | GameCreated (Result Http.Error String)
-    | LobbyToPlayerLobby
-    | PlayerLobbyToGame
-    | RandomGameName String
-    | RandomPlayerName String
-    | GameSettingsMsg GameSettingsMsg
-    | DismissError
-    | Tick Time.Posix
-    | ReInitGame
-    | PlayerSendSmiley String
-
-type GameSettingsMsg
-  = ChangePlayerName String
-  | ChangeQuestionNumber String
-  | ChangeTimeout String
-  | ChangeGameId String
-
-type alias GameSettingsModel r =
-  { r 
-    | playerName: String
-    , gameId: String
-    , timeout: String
-    , numberOfQuestions: String
-  }
-
-type alias GameStateModel r =
-  { r 
-    | isReady: Bool
-    , isJoined: Bool
-    , currentQuestion: Maybe GameQuestion
-    , currentChoice: Int
-    , finalScore: GameScore
-    , currentRecap: PlayerRoundRecap
-  }
-
-initialModel config =
-  { view = LobbyView
-  , gameId = ""
-  , playerName = ""
-  , playerColor = "#FFF"
-  , currentQuestion = Nothing
-  , currentChoice = -1
-  , finalScore = {score = []}
-  , isReady = False
-  , isJoined = False
-  , errorMessage = ""
-  , timeout = "30"
-  , numberOfQuestions = "10"
-  , appConfig = config
-  , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-", color=""}
-  , otherPlayersRecap = []
-  , logs = []
-  , timeElapsed = 0
-  , displayedMessages = []
-  }
-
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
     ( (initialModel config)
@@ -191,7 +86,7 @@ updateGameSettings msg model =
 updateGame: Value -> Model -> ( Model, Cmd Msg )
 updateGame msg model = 
   let
-    gameEvent = parseGameEvent msg
+    gameEvent = parseServerEvent msg
   in
     case gameEvent of
       NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1, timeElapsed = 0}, Cmd.none)
@@ -304,125 +199,6 @@ view model =
     GameView -> gameView model
     GameFinishedView -> gameFinishedView model
 
-lobbyView: Model -> Html Msg
-lobbyView model = 
-  div [ class "d-flex flex-column" ]
-    [ h3 []
-        [ text "welcome to the Damajia !" ]
-    , div []
-        [ h4 []
-            [ text "Create a game" ]
-        , div [ class "d-flex flex-column" ]
-            [ div []
-                [ label [ class "small text-sm text-uppercase font-weight-bolder" ]
-                    [ text "game name" ]
-                , input [ onInput (GameSettingsMsg << ChangeGameId), attribute "autocomplete" "off", class "form-control", name "newgameid", placeholder "game id", type_ "text", value model.gameId]
-                    []
-                , text "            "
-                ]              
-            , div []
-                [ label [ class "small text-uppercase font-weight-bolder" ]
-                    [ text "number of questions" ]
-                , input [ onInput (GameSettingsMsg << ChangeQuestionNumber), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value model.numberOfQuestions ]
-                    []
-                , text "            "
-                ]
-            , div []
-                [ label [ class "small text-uppercase font-weight-bolder" ]
-                    [ text "timeout" ]
-                , input [ onInput (GameSettingsMsg << ChangeTimeout), attribute "autocomplete" "off", class "form-control", name "newgamenb", type_ "number", value model.timeout ]
-                    []
-                , text "            "
-                ]
-            , div [ class "d-flex" ]
-                [ button [ class "btn btn-info btn-block", onClick CreateGame ]
-                    [ text "create" ]
-                ]
-            ]
-        ]
-    , div [ class "d-flex justify-content-center" ]
-        [ h4 [ class "m-md" ]
-            [ b []
-                [ text "OR" ]
-            ]
-        ]
-    , div []
-        [ h4 []
-            [ text "Join a game" ]
-        , input [ onInput (GameSettingsMsg << ChangeGameId), attribute "autocomplete" "off", class "form-control", name "gameid", placeholder "game id", type_ "text" ]
-            []
-        , button [onClick LobbyToPlayerLobby, class "btn btn-secondary btn-block" ]
-            [ text "join" ]
-        ]
-    , printError model.errorMessage
-    ]
-
--- displayFace (Maybe.withDefault "" (List.head  smiley))
-displayFace: String -> String -> String -> String -> Html Msg
-displayFace emoji color x y = 
-  div [style "position" "fixed", style "top" (x++"%"), style "left" (y++"%")] [div [style "background" color ,class "speech-bubble"]
-    [ text emoji
-    , span [style "border-top-color" color, class "speech-bubble-sub"] []
-    ]]
-
-smiley = ["🤔", "😂", "😃","😭"]
-
-printError: String -> Html Msg
-printError msg = 
-  if String.isEmpty msg then div [class "popup"] [ text msg ]
-  else div [class "popup popup--visible"] [ text msg ]
-
-gameView: Model -> Html Msg
-gameView model = 
-  div []
-    [ h4 []
-        [ printQuestionTitle model.currentQuestion ]
-    , ul [ class "d-flex flex-column" ]
-        (printQuestionChoices model model.currentQuestion)
-    , displaySmileys
-    , displayInGameMessage model.displayedMessages
-    , case model.currentQuestion of
-      Nothing -> div [] [] 
-      Just _ -> 
-        String.toInt model.timeout
-          |> Maybe.withDefault 1
-          |> displayTimer model.timeElapsed
-    ]
-
-displaySmileys: Html Msg
-displaySmileys =
-  ul [ class "d-flex smiley" ] (List.map (\smile -> li [onClick (PlayerSendSmiley smile),class "smiley-message"] [text smile] ) smiley)
-
-displayInGameMessage: List TempInGameMessages -> Html Msg
-displayInGameMessage messages = 
-  ul [ class "d-flex smiley" ] (List.map (\msg -> displayFace msg.text msg.color (String.fromInt msg.top) (String.fromInt msg.left)) messages)
-
-displayTimer: Int -> Int -> Html Msg
-displayTimer timeElapsed timeout =
-  let
-    normalizedTimer = (toFloat timeElapsed / toFloat timeout) * 100
-     |> Basics.min 100
-  in
-    if timeElapsed > 0 then div [class "timer timer-animation", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
-    else div [class "timer", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
-
-playerLobbyView: Model -> Html Msg
-playerLobbyView model =
-  div []
-    [ h5 [] [ text ("Your game id : "  ++ model.gameId) ]
-    , label [ class "small text-uppercase font-weight-bolder" ]
-        [ text "your name" ]
-    , input [ onInput (GameSettingsMsg << ChangePlayerName), attribute "autocomplete" "off", class "form-control", name "newgameplayer", type_ "text", placeholder "name", disabled model.isJoined, value model.playerName]
-        []
-    , button [ onClick JoinGame, class ("mt-3 btn btn-block " ++ if model.isJoined then "btn-secondary" else "btn-primary"), disabled model.isJoined]
-      [ text "join game" ]
-    , button [ onClick GameReady, class ("btn btn-block "++if model.isReady then "btn-danger" else if model.isJoined then "btn-success" else "btn-secondary"), disabled (not model.isJoined) ]
-      [ text (if model.isReady then "Not Ready" else "Ready") ]
-    , ul [ class "d-flex flex-column" ]
-        (List.map (\log -> li [] [ h5 [style "color" log.color] [text log.text ]]) model.logs)
-    , printError model.errorMessage
-    ]
-
 gameFinishedView: Model -> Html Msg
 gameFinishedView model = 
   div []
@@ -432,40 +208,6 @@ gameFinishedView model =
         (List.map (\playerScore -> li [class "alert alert-primary"] [ h5 [] [text (playerScore.playerName ++ " got " ++ (String.fromInt playerScore.score ++ " points")) ]]) model.finalScore.score)
     , button [ onClick ReInitGame, class "btn btn-block btn-success" ] [ text "Play again !" ]
     ]
-
-printQuestionChoices : Model -> Maybe GameQuestion -> List (Html Msg)
-printQuestionChoices model question =
-  case question of 
-    Nothing -> []
-    Just q ->
-      if q.id == model.currentRecap.questionId then
-        (List.map (\choice -> li [class ("answer hoverable alert alert-"++(questionGoodColor choice.id model.currentRecap.answer model.currentRecap.goodAnswer)), onClick (SubmitAnswer choice.id)] ( [text choice.text]++(otherPLayersAnswers model.otherPlayersRecap choice.id))) q.possibleResponses)
-      else
-        (List.map (\choice -> li [class ("answer hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
-
-questionGoodColor: Int -> Int -> Int -> String
-questionGoodColor answerId playerChoice goodAnswer = 
-  if playerChoice == goodAnswer && answerId == playerChoice then "success"
-  else if playerChoice == answerId && answerId /= goodAnswer then "danger"
-  else if answerId == goodAnswer then "success"
-  else "primary"
-
-colorQuestion: Int -> Int -> String
-colorQuestion choiceId selfChoiceId = if choiceId == selfChoiceId then "alert-secondary" else "alert-primary"
-
-printQuestionTitle: Maybe GameQuestion -> Html Msg
-printQuestionTitle question =
-  case question of
-    Nothing -> div [][text "Waiting all players to be ready..."]
-    Just q -> text q.title
-
-
-otherPLayersAnswers: List PlayerRoundRecap -> Int -> List (Html Msg)
-otherPLayersAnswers otherPlayersRecap choiceId = 
-  let 
-    answers = List.filter (\recap -> recap.answer == choiceId) otherPlayersRecap
-  in
-    List.indexedMap (\i recap -> span [class "answer-others", style "background-color" recap.color, style "left" (String.fromInt (95-i)++"%")] []) answers
 
 ---- Utils
 
