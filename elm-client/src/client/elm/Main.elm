@@ -13,7 +13,7 @@ import Task
 import Process
 import ServerDecoder exposing (parseServerEvent)
 import RandomUtils exposing (fiveLetterEnglishWord)
-import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, initialModel, GameSettingsMsg(..), TempInGameMessages, GameSettings, GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, Log)
+import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, initialModel, GameSettingsMsg(..), TempInGameMessages, GameSettings, GameMessage(..),GameScore,PlayerScore,PlayerRoundReport,GameQuestion,PossibleResponse, Log)
 import GamePage exposing (gameView)
 import HomePage exposing (lobbyView)
 import LobbyPage exposing (playerLobbyView)
@@ -39,21 +39,6 @@ subscriptions model =
 port sendMessage : (String,String) -> Cmd msg
 port receiveMessage : (Value -> msg) -> Sub msg
 
-send : String -> List String -> Cmd msg
-send msg array = sendMessage (msg, (String.join "," array)) -- hack: la lib ne permet d'envoyer que des strings, on parsera côté JS avec les ','
-
-sendMessagePlayerJoin: String -> String -> Cmd msg
-sendMessagePlayerJoin playerName gameId = send "join" [playerName, gameId]
-
-sendMessagePlayerReady: String -> String -> Bool -> Cmd msg
-sendMessagePlayerReady playerName gameId isReady = send "ready" [playerName, gameId, (if isReady then "false" else "true") ]
-
-sendMessageSubmitAnswer: String -> String -> String -> Int -> Cmd msg
-sendMessageSubmitAnswer playerName gameId questionid answerid = send "submit" [ playerName, gameId, questionid, String.fromInt answerid]
-
-sendMessageSendSmiley: String -> String -> String -> Cmd msg
-sendMessageSendSmiley playerName gameId smile = send "player_ingame_message" [ playerName, gameId, smile ]
-
 init : AppConfig -> ( Model, Cmd Msg )
 init config =
     ( (initialModel config)
@@ -76,13 +61,13 @@ setTimeout timeout game = {game | timeout = timeout}
 setNumberOfQuestions: String -> GameSettingsModel r -> GameSettingsModel r
 setNumberOfQuestions nb game = {game | numberOfQuestions = nb}
 
-updateGameSettings: GameSettingsMsg -> Model -> ( Model, Cmd Msg )
+updateGameSettings: GameSettingsMsg -> GameSettingsModel r -> ( GameSettingsModel r, Cmd Msg )
 updateGameSettings msg model = 
   case msg of 
-    ChangePlayerName name ->(setPlayerName name model, Cmd.none )
-    ChangeQuestionNumber nb ->(setNumberOfQuestions nb model, Cmd.none )
+    ChangePlayerName name -> (setPlayerName name model, Cmd.none )
+    ChangeQuestionNumber nb -> (setNumberOfQuestions nb model, Cmd.none )
     ChangeTimeout timeout -> (setTimeout timeout model, Cmd.none )
-    ChangeGameId id ->(setGameId id model, Cmd.none )
+    ChangeGameId id -> (setGameId id model, Cmd.none )
 
 
 -- UPDATE WHEN SERVER PUSH AN EVENT
@@ -93,14 +78,45 @@ updateGame msg model =
   in
     case serverEvent of
       NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1, timeElapsed = 0}, Cmd.none)
-      RoundRecap recap -> ({model
-       | currentRecap = (myRecap model.playerName model.currentQuestion recap)
-       , otherPlayersRecap = (othersRecap model.playerName model.currentQuestion recap)}
+      RoundReport report -> ({model
+       | currentReport = (selfReport model.playerName report)
+       , otherPlayersReports = (otherPlayersReports model.playerName report)}
        , Cmd.none)
       GameFinished score -> ({model | finalScore = score, view = GameFinishedView}, Cmd.none)
       ErrorParse err -> ({model | errorMessage = err}, Cmd.none)
       LobbyLog logs -> ({model | logs = logs.logs}, Cmd.none)
-      InGameMessage message -> ({model | displayedMessages = model.displayedMessages ++ [{text = message.text, color = message.color, timer= 2, top=message.top, left= message.left}]}, Cmd.none)
+      InGameMessage message -> (
+        { model 
+        | displayedMessages = model.displayedMessages ++ [{text=message.text, color=message.color, timer=2, top=message.top, left=message.left}]
+        }
+        , Cmd.none)
+
+selfReport: String -> (List PlayerRoundReport) -> PlayerRoundReport
+selfReport myName currentRoundReport = 
+  currentRoundReport
+  |> List.Extra.find (\report -> report.playerName == myName)
+  |> Maybe.withDefault (PlayerRoundReport myName -1 -1 "" "")
+      
+otherPlayersReports: String -> (List PlayerRoundReport) -> (List PlayerRoundReport)
+otherPlayersReports myName currentRoundReport = 
+  currentRoundReport
+  |> List.filter (\report -> report.playerName /= myName) 
+
+-- SEND MESSAGES TO SERVER
+send : String -> List String -> Cmd msg
+send msg array = sendMessage (msg, (String.join "," array)) -- hack: la lib ne permet d'envoyer que des strings, on parsera côté JS avec les ','
+
+sendMessagePlayerJoin: String -> String -> Cmd msg
+sendMessagePlayerJoin playerName gameId = send "join" [playerName, gameId]
+
+sendMessagePlayerReady: String -> String -> Bool -> Cmd msg
+sendMessagePlayerReady playerName gameId isReady = send "ready" [playerName, gameId, (if isReady then "false" else "true") ]
+
+sendMessageSubmitAnswer: String -> String -> String -> Int -> Cmd msg
+sendMessageSubmitAnswer playerName gameId questionid answerid = send "submit" [ playerName, gameId, questionid, String.fromInt answerid]
+
+sendMessageSendSmiley: String -> String -> String -> Cmd msg
+sendMessageSendSmiley playerName gameId smile = send "player_ingame_message" [ playerName, gameId, smile ]
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -144,12 +160,15 @@ update msg model =
     LobbyToPlayerLobby -> ({model | view = PlayerLobbyView}, Cmd.none)
     PlayerLobbyToGame -> ({model | view = GameView}, Cmd.none)
     DismissError -> ({model | errorMessage = ""}, Cmd.none)
-    Tick _ -> ({model | timeElapsed = model.timeElapsed + 1,
-        displayedMessages = minusOne model.displayedMessages |> filterExpiredMessage}
+    Tick _ -> (
+      { model 
+      | timeElapsed = model.timeElapsed + 1
+      ,  displayedMessages = model.displayedMessages |> minusOneSecond |> filterExpiredMessage
+      }
       , Cmd.none)
 
-minusOne: List TempInGameMessages -> List TempInGameMessages
-minusOne list = List.map (\msg -> {msg | timer = msg.timer - 1}) list
+minusOneSecond: List TempInGameMessages -> List TempInGameMessages
+minusOneSecond list = List.map (\msg -> {msg | timer = msg.timer - 1}) list
 
 filterExpiredMessage: List TempInGameMessages -> List TempInGameMessages
 filterExpiredMessage list = List.filter (\msg -> msg.timer > 0) list
@@ -175,25 +194,7 @@ createGameSettings settings =
     , ("numberOfquestions", Json.Encode.int settings.numberOfQuestions)
     ]
 
-myRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> PlayerRoundRecap
-myRecap myName question currentRoundRecap = 
-  case question of 
-      Nothing -> 
-        Maybe.withDefault (PlayerRoundRecap myName -1 -1 "" "")
-        (List.Extra.find (\recap -> recap.playerName == myName) currentRoundRecap)
-      Just q -> 
-        Maybe.withDefault (PlayerRoundRecap myName -1 -1 q.id "")
-        (List.Extra.find (\recap -> recap.playerName == myName) currentRoundRecap)
-
-othersRecap: String -> (Maybe GameQuestion) -> (List PlayerRoundRecap) -> (List PlayerRoundRecap)
-othersRecap myName question currentRoundRecap = 
-  case question of 
-        Nothing -> 
-          List.filter (\recap -> recap.playerName /= myName) currentRoundRecap
-        Just q -> 
-          List.filter (\recap -> recap.playerName /= myName) currentRoundRecap
 -- VIEW
-
 view : Model -> Html Msg
 view model = 
   case model.view of

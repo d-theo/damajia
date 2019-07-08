@@ -1,6 +1,6 @@
 module ServerDecoder exposing (parseServerEvent)
 
-import Types exposing(GameMessage(..),GameScore,PlayerScore,PlayerRoundRecap,GameQuestion,PossibleResponse, Log, Logs, IGMessage)
+import Types exposing(GameMessage(..),GameScore,PlayerScore,PlayerRoundReport,GameQuestion,PossibleResponse, Log, Logs, IGMessage)
 import Json.Encode exposing (Value, object)
 import Json.Decode exposing (Decoder, field, string, map4, map5, map3, list, map2, int, map, oneOf, decodeValue, errorToString)
 
@@ -19,7 +19,7 @@ gameMessage =
   oneOf
     [ map NextQuestion gameQuestion
     , map GameFinished gameScore
-    , map RoundRecap roundRecap
+    , map RoundReport roundReport
     , map LobbyLog lobbyLog
     , map InGameMessage igMessage
     ]
@@ -69,12 +69,12 @@ playerScore =
     (field "playerName" string)
     (field "score" int)
 
-roundRecap: Decoder (List PlayerRoundRecap)
-roundRecap = Json.Decode.list playerRoundRecap
+roundReport: Decoder (List PlayerRoundReport)
+roundReport = Json.Decode.list playerRoundReport
 
-playerRoundRecap: Decoder PlayerRoundRecap
-playerRoundRecap =
-  map5 PlayerRoundRecap
+playerRoundReport: Decoder PlayerRoundReport
+playerRoundReport =
+  map5 PlayerRoundReport
     (field "playerName" string)
     (field "answer" int)
     (field "goodAnswer" int)

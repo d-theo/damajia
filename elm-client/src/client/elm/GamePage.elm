@@ -4,7 +4,7 @@ import Html exposing (Html, button, div, input, li, text, ul, h3, label, h4, b, 
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Http exposing (Error(..))
-import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, initialModel, TempInGameMessages, GameSettings, GameQuestion, PlayerRoundRecap)
+import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, initialModel, TempInGameMessages, GameSettings, GameQuestion, PlayerRoundReport)
 
 gameView: Model -> Html Msg
 gameView model = 
@@ -54,10 +54,12 @@ printQuestionChoices model question =
   case question of 
     Nothing -> []
     Just q ->
-      if q.id == model.currentRecap.questionId then
-        (List.map (\choice -> li [class ("answer hoverable alert alert-"++(questionGoodColor choice.id model.currentRecap.answer model.currentRecap.goodAnswer)), onClick (SubmitAnswer choice.id)] ( [text choice.text]++(otherPLayersAnswers model.otherPlayersRecap choice.id))) q.possibleResponses)
+      if q.id == model.currentReport.questionId then
+        q.possibleResponses
+        |> List.map (\choice -> li [class ("answer hoverable alert alert-"++(questionGoodColor choice.id model.currentReport.answer model.currentReport.goodAnswer)), onClick (SubmitAnswer choice.id)] ( [text choice.text]++(otherPLayersAnswers model.otherPlayersReports choice.id)))
       else
-        (List.map (\choice -> li [class ("answer hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ]) q.possibleResponses)
+        q.possibleResponses
+        |> List.map (\choice -> li [class ("answer hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ])
 
 printQuestionTitle: Maybe GameQuestion -> Html Msg
 printQuestionTitle question =
@@ -76,9 +78,8 @@ colorQuestion: Int -> Int -> String
 colorQuestion choiceId selfChoiceId = if choiceId == selfChoiceId then "alert-secondary" else "alert-primary"
 
 
-otherPLayersAnswers: List PlayerRoundRecap -> Int -> List (Html Msg)
-otherPLayersAnswers otherPlayersRecap choiceId = 
-  let 
-    answers = List.filter (\recap -> recap.answer == choiceId) otherPlayersRecap
-  in
-    List.indexedMap (\i recap -> span [class "answer-others", style "background-color" recap.color, style "left" (String.fromInt (95-i)++"%")] []) answers
+otherPLayersAnswers: List PlayerRoundReport -> Int -> List (Html Msg)
+otherPLayersAnswers otherPlayersReports choiceId = 
+  otherPlayersReports
+   |> List.filter (\report -> report.answer == choiceId)
+   |> List.indexedMap (\i report -> span [class "answer-others", style "background-color" report.color, style "left" (String.fromInt (95-i)++"%")] [])

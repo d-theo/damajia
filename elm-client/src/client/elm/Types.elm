@@ -12,7 +12,7 @@ module Types exposing
   , GameMessage(..)
   , GameScore
   , PlayerScore
-  , PlayerRoundRecap
+  , PlayerRoundReport
   , GameQuestion
   , PossibleResponse
   , Log
@@ -55,7 +55,6 @@ type alias Model =
     , logs: List Log
     , gameId: String
     , playerName: String
-    , playerColor: String
     , isReady: Bool
     , isJoined: Bool
     , timeout: String
@@ -63,8 +62,8 @@ type alias Model =
     , currentQuestion : Maybe GameQuestion
     , currentChoice: Int
     , finalScore: GameScore
-    , currentRecap: PlayerRoundRecap
-    , otherPlayersRecap: List PlayerRoundRecap
+    , currentReport: PlayerRoundReport
+    , otherPlayersReports: List PlayerRoundReport
     , timeElapsed: Int
     , displayedMessages: List TempInGameMessages
     }
@@ -107,12 +106,13 @@ type alias GameStateModel r =
     , currentQuestion: Maybe GameQuestion
     , currentChoice: Int
     , finalScore: GameScore
-    , currentRecap: PlayerRoundRecap
+    , currentReport: PlayerRoundReport
+    , otherPlayersReports: List PlayerRoundReport
   }
 
 type GameMessage
   = NextQuestion GameQuestion
-  | RoundRecap (List PlayerRoundRecap)
+  | RoundReport (List PlayerRoundReport)
   | GameFinished GameScore
   | ErrorParse String
   | LobbyLog Logs
@@ -141,7 +141,7 @@ type alias PlayerScore =
   , score: Int
   }
 
-type alias PlayerRoundRecap =
+type alias PlayerRoundReport =
   { playerName: String
   , answer: Int
   , goodAnswer: Int
@@ -163,7 +163,6 @@ initialModel config =
   { view = LobbyView
   , gameId = ""
   , playerName = ""
-  , playerColor = "#FFF"
   , currentQuestion = Nothing
   , currentChoice = -1
   , finalScore = {score = []}
@@ -173,8 +172,8 @@ initialModel config =
   , timeout = "30"
   , numberOfQuestions = "10"
   , appConfig = config
-  , currentRecap = {playerName= "", answer=-1, goodAnswer=-1, questionId="-", color=""}
-  , otherPlayersRecap = []
+  , currentReport = {playerName= "", answer=-1, goodAnswer=-1, questionId="-", color=""}
+  , otherPlayersReports = []
   , logs = []
   , timeElapsed = 0
   , displayedMessages = []
