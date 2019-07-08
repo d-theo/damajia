@@ -18,9 +18,7 @@ gameView model =
     , case model.currentQuestion of
       Nothing -> div [] [] 
       Just _ -> 
-        String.toInt model.timeout
-          |> Maybe.withDefault 1
-          |> displayTimer model.timeElapsed
+        displayTimer model.timeElapsed <| Maybe.withDefault 30 <| String.toInt model.timeout
     ]
     
 displayFace: String -> String -> String -> String -> Html Msg
@@ -46,8 +44,8 @@ displayTimer timeElapsed timeout =
     normalizedTimer = (toFloat timeElapsed / toFloat timeout) * 100
      |> Basics.min 100
   in
-    if timeElapsed > 0 then div [class "timer timer-animation", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
-    else div [class "timer", style "width" (String.fromFloat normalizedTimer++"%")] [ ]
+    if timeElapsed > 0 then div [class "timer timer-animation", style "width" <| String.fromFloat normalizedTimer++"%" ] [ ]
+    else div [class "timer", style "width" <| String.fromFloat normalizedTimer++"%" ] [ ] -- avoid animation when reseting 100 => 0
 
 printQuestionChoices : Model -> Maybe GameQuestion -> List (Html Msg)
 printQuestionChoices model question =
@@ -56,10 +54,24 @@ printQuestionChoices model question =
     Just q ->
       if q.id == model.currentReport.questionId then
         q.possibleResponses
-        |> List.map (\choice -> li [class ("answer hoverable alert alert-"++(questionGoodColor choice.id model.currentReport.answer model.currentReport.goodAnswer)), onClick (SubmitAnswer choice.id)] ( [text choice.text]++(otherPLayersAnswers model.otherPlayersReports choice.id)))
+        |> List.map
+          (\choice -> 
+            li[ class "answer hoverable alert"
+              , class (paintQuestionAndAnswerBackground choice.id model.currentReport.answer model.currentReport.goodAnswer)
+              , onClick (SubmitAnswer choice.id)
+              ] <|
+              [text choice.text] ++ (otherPLayersAnswers model.otherPlayersReports choice.id)
+          )
       else
         q.possibleResponses
-        |> List.map (\choice -> li [class ("answer hoverable alert "++(colorQuestion choice.id model.currentChoice)), onClick (SubmitAnswer choice.id)] [ text choice.text ])
+        |> List.map 
+          (\choice -> 
+            li[ class ("answer hoverable alert ")
+              , class (paintQuestionBackground choice.id model.currentChoice)
+              , onClick (SubmitAnswer choice.id)
+              ]
+              [ text choice.text ]
+          )
 
 printQuestionTitle: Maybe GameQuestion -> Html Msg
 printQuestionTitle question =
@@ -67,15 +79,15 @@ printQuestionTitle question =
     Nothing -> div [][text "Waiting all players to be ready..."]
     Just q -> text q.title
 
-questionGoodColor: Int -> Int -> Int -> String
-questionGoodColor answerId playerChoice goodAnswer = 
-  if playerChoice == goodAnswer && answerId == playerChoice then "success"
-  else if playerChoice == answerId && answerId /= goodAnswer then "danger"
-  else if answerId == goodAnswer then "success"
-  else "primary"
+paintQuestionAndAnswerBackground: Int -> Int -> Int -> String
+paintQuestionAndAnswerBackground answerId playerChoice goodAnswer = 
+  if playerChoice == goodAnswer && answerId == playerChoice then "alert-success"
+  else if playerChoice == answerId && answerId /= goodAnswer then "alert-danger"
+  else if answerId == goodAnswer then "alert-success"
+  else "alert-primary"
 
-colorQuestion: Int -> Int -> String
-colorQuestion choiceId selfChoiceId = if choiceId == selfChoiceId then "alert-secondary" else "alert-primary"
+paintQuestionBackground: Int -> Int -> String
+paintQuestionBackground choiceId selfChoiceId = if choiceId == selfChoiceId then "alert-secondary" else "alert-primary"
 
 
 otherPLayersAnswers: List PlayerRoundReport -> Int -> List (Html Msg)
