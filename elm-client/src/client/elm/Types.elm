@@ -70,7 +70,7 @@ type alias Model =
     }
 
 type Msg
-    = GameEvent Value
+    = ServerEvent Value
     | SubmitAnswer Int
     | JoinGame
     | GameReady

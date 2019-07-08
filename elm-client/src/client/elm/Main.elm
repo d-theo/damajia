@@ -17,6 +17,7 @@ import Types exposing (Model, Msg(..), View(..), AppConfig, GameSettingsModel, i
 import GamePage exposing (gameView)
 import HomePage exposing (lobbyView)
 import LobbyPage exposing (playerLobbyView)
+import GameFinishedPage exposing (gameFinishedView)
 
 -- MAIN
 main =
@@ -31,7 +32,7 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch 
-  [ receiveMessage GameEvent
+  [ receiveMessage ServerEvent
   , Time.every 1000 Tick
   ]
 
@@ -62,7 +63,7 @@ init config =
       ]
     )
 
--- UPDATE
+-- UPDATE GAME SETTINGS
 setPlayerName: String -> GameSettingsModel r -> GameSettingsModel r
 setPlayerName name game = {game | playerName = name}
 
@@ -83,12 +84,14 @@ updateGameSettings msg model =
     ChangeTimeout timeout -> (setTimeout timeout model, Cmd.none )
     ChangeGameId id ->(setGameId id model, Cmd.none )
 
+
+-- UPDATE WHEN SERVER PUSH AN EVENT
 updateGame: Value -> Model -> ( Model, Cmd Msg )
 updateGame msg model = 
   let
-    gameEvent = parseServerEvent msg
+    serverEvent = parseServerEvent msg
   in
-    case gameEvent of
+    case serverEvent of
       NextQuestion question -> ({model | currentQuestion = (Just question), currentChoice = -1, timeElapsed = 0}, Cmd.none)
       RoundRecap recap -> ({model
        | currentRecap = (myRecap model.playerName model.currentQuestion recap)
@@ -108,7 +111,7 @@ update msg model =
       ({model | gameId = randomId}, Cmd.none)
     RandomPlayerName randomId -> 
       ({model | playerName = randomId}, Cmd.none)
-    GameEvent rawEvent ->
+    ServerEvent rawEvent ->
       updateGame rawEvent model
     GameCreated res -> 
       case res of
@@ -198,16 +201,6 @@ view model =
     PlayerLobbyView -> playerLobbyView model
     GameView -> gameView model
     GameFinishedView -> gameFinishedView model
-
-gameFinishedView: Model -> Html Msg
-gameFinishedView model = 
-  div []
-    [ h4 []
-        [ text "Game Finished !" ]
-    , ul [ class "d-flex flex-column" ]
-        (List.map (\playerScore -> li [class "alert alert-primary"] [ h5 [] [text (playerScore.playerName ++ " got " ++ (String.fromInt playerScore.score ++ " points")) ]]) model.finalScore.score)
-    , button [ onClick ReInitGame, class "btn btn-block btn-success" ] [ text "Play again !" ]
-    ]
 
 ---- Utils
 
