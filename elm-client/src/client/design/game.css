@@ -1,0 +1,37 @@
+.bg-blue {
+  background-color: #17a2b8;
+  padding: 5px;
+  color: white;
+}
+.top {
+  height: 35vh;
+}
+
+body {
+  background: antiquewhite;
+  width: 100%;
+  height: 100%;
+  font-family: "Antic";
+}
+.questions-title {
+  padding: 5px;
+}
+.questions {
+  font-family: "Open Sans";
+  z-index: 999;
+  background: white;
+  position: absolute;
+  width: 60vw;
+  height: 260px;
+  top: 30%;
+  left: calc(50% - 30vw);
+  border-radius: 3px;
+  padding: 5px;
+  box-shadow: -2px 3px 5px -2px rgba(0,0,0,0.75);
+}
+
+.answer {
+  padding: 5px;
+  min-height: 65px;
+  border-bottom: solid 1px #EEE;
+}
