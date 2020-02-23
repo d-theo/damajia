@@ -17,3 +17,8 @@ deployed with
 -  [AWS](https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1) 
 
 You can play it solo or with your friends [here](http://damajia.grulitoworld.co)
+
+## Local dev
+
+The install script can be copy/paste from here https://github.com/d-theo/damajia/blob/master/architecture/setup.sh
+just replace yum by your favorite package manager :)
