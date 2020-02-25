@@ -7,7 +7,7 @@ let serverUrl;
 let wsPort = 3000;
 let apiPort = 3001;
 if (process.env.NODE_ENV === 'production') {
-  serverUrl = 'http://34.254.183.97';
+  serverUrl = 'http://damajia.grulitoworld.co';
 } else {
   serverUrl = 'http://127.0.0.1';
 }
