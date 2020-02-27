@@ -22,3 +22,7 @@ You can play it solo or with your friends [here](http://damajia.grulitoworld.co)
 
 The install script can be copy/paste from here https://github.com/d-theo/damajia/blob/master/architecture/setup.sh
 just replace yum by your favorite package manager :)
+
+## Demo
+
+![Alt Text](demo.gif)
